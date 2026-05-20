@@ -1227,7 +1227,12 @@ lemma coupled_equations_trivial_case {α β c : ℝ}
       unfold integralEquation at h₀
       rw [h₀]
       · simp [exponentialPDFReal, gammaPDFReal]
-        sorry
+        congr
+        ext t
+        split_ifs with g₀
+        · ring_nf
+          sorry
+        · sorry
       · exact hu
     · sorry
 

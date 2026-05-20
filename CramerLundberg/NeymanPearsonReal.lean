@@ -204,12 +204,29 @@ The Neyman-Pearson lemma.
 -/
 lemma NP (θ₀ θ₁ η α : ℝ) (hηp : 0 ≤ η)
     {ρ : ℝ → ℝ → ℝ} (hρ : 0 ≤ ρ)
-    (hmm : ∀ θ, Measurable (ρ θ))
+    (hmm : ∀ θ, Measurable (ρ θ)) -- AEMeasurable should be enough,
+    -- which follows from hI?
     (hI : ∀ θ, Integrable (ρ θ) volume)
     (hα : ∫ x in (RNP θ₀ θ₁ η ρ), ρ θ₀ x = α)
     {R : Set ℝ} (hR : MeasurableSet R)
     (hα' : ∫ x in R, ρ θ₀ x ≤ α) :
     ∫ x in R, ρ θ₁ x ≤ ∫ x in (RNP θ₀ θ₁ η ρ), ρ θ₁ x := by
+  have (θ : ℝ) := (hI θ).1
+  have : ∀ (θ : ℝ), AEMeasurable (ρ θ) volume := by
+    clear hmm
+    intro θ
+    apply AEStronglyMeasurable.aemeasurable (this θ)
+  obtain ⟨ρθ₁,hρθ₁⟩ := this θ₁
+  have h_replace :  ∫ (x : ℝ) in R, ρ θ₁ x =  ∫ (x : ℝ) in R, ρθ₁ x := by
+    refine setIntegral_congr_ae₀ ?_ ?_
+    exact MeasurableSet.nullMeasurableSet hR
+    simp [Filter.Eventually]
+    apply mem_of_superset
+    show {x | ρ θ₁ x = ρθ₁ x} ∈ ae volume
+    exact hρθ₁.2
+    intro x hx
+    simp at hx ⊢
+    tauto
   have lem (f g : ℝ → ℝ) : (fun a => f a * η * g a)
     =       (fun a => η * f a * g a) := by ext;ring_nf
   have h₁ : AEStronglyMeasurable
