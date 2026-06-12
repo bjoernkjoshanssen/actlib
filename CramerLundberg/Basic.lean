@@ -1,10 +1,12 @@
+/-
+Copyright (c) 2026 Bjørn Kjos-Hanssen. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bjørn Kjos-Hanssen
+-/
 import Mathlib.Probability.Distributions.Exponential
 import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.MeasureTheory.Integral.Gamma
 import Mathlib.Probability.Process.Stopping
-
-open MeasureTheory ProbabilityTheory Real Set Filter
-open scoped ENNReal BigOperators
 
 /-!
 
@@ -60,6 +62,8 @@ Main results:
     `φ₁ (u + c₁ * t - x) * exponentialPDFReal β₁ x)))`
 
 -/
+open MeasureTheory ProbabilityTheory Real Set Filter
+open scoped ENNReal BigOperators
 
 open ProbabilityTheory MeasureTheory
 
@@ -339,7 +343,9 @@ theorem integrable_exponential_joint (r s : ℝ) (hr : 0 < r) (hs : 0 < s) :
       rwa [ MeasureTheory.IntegrableOn,
         MeasureTheory.Measure.restrict_congr_set MeasureTheory.Ioi_ae_eq_Ici ] at *;
     rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Ici ) ] at *;
-    convert h_integrable using 1 ; ext x ; split_ifs <;> simp_all [ ← Real.exp_add ] ; ring;
+    convert h_integrable using 1
+    · rfl
+    ext x ; split_ifs <;> simp_all [ ← Real.exp_add ] ; ring;
   convert h_integrable.const_mul ( r : ℝ ) using 2
   norm_num [ Real.exp_neg, Real.exp_ne_zero, hr.ne', hs.ne', gammaPDFReal ] ; ring_nf
 
@@ -349,7 +355,8 @@ lemma div_add_nonneg {r s : ℝ} (hs : 0 < s) (hr : 0 < r) : 0 ≤ r / (r + s) :
 lemma first_loss_is_ruinous' (r s : ℝ) (hs : 0 < s) (hr : 0 < r) :
     (Measure.prod (expMeasure r) (expMeasure s)) {x | x.1 ≤ x.2}
     = some ⟨r / (r + s), div_add_nonneg hs hr⟩ := by
-  have : (volume.withDensity (exponentialPDF r)).prod (volume.withDensity (exponentialPDF s))
+  have : (volume.withDensity (exponentialPDF r)).prod
+    (volume.withDensity (exponentialPDF s))
     = (Measure.prod (expMeasure r) (expMeasure s)) := by
       exact Measure.ext_iff.mpr fun s_1 ↦ congrFun rfl
   rw [← this]
@@ -407,7 +414,10 @@ lemma first_loss_is_ruinous' (r s : ℝ) (hs : 0 < s) (hr : 0 < r) :
             exact Filter.univ_mem
       simp_rw [this]
       rw [← ofReal_integral_eq_lintegral_ofReal]
-      · rw [← ENNReal.ofReal_eq_coe_nnreal]
+      · have (x : ℝ) (hx : 0 ≤ x) :
+            (⟨x,hx⟩ : {x : ℝ // 0 ≤ x}) = NNReal.mk x hx := rfl
+        rw [this]
+        rw [← ENNReal.ofReal_eq_coe_nnreal]
         apply congrArg -- yes!
         have hswap: (∫ (x : ℝ) (y : ℝ), if x ≤ y then
                 exponentialPDFReal r x * exponentialPDFReal s y else 0)
@@ -1141,7 +1151,7 @@ lemma ruin_theory_tendsto_converse {α β c : ℝ}
       intro S hS
       unfold atTop at hS
       have ⟨a,ha⟩ : ∃ a, Ici a ⊆ S := mem_atTop_sets.mp hS
-      simp only [mem_map, mem_atTop_sets, ge_iff_le, mem_preimage]
+      simp only [mem_map, mem_atTop_sets, mem_preimage]
       by_cases H : a ≤ 0
       · use 0
         intro x hx
@@ -1170,12 +1180,12 @@ lemma ruin_theory_tendsto_converse {α β c : ℝ}
     have : nhds (0 : ℝ) = atTop := by
       exfalso
       have : Filter.map F atTop ≤ min (nhds 0) atTop := le_inf h₂ h₄
-      simp only [inf_nhds_atTop, le_bot_iff, Filter.map_eq_bot_iff] at this
+      simp only [nhds_inf_atTop, le_bot_iff, Filter.map_eq_bot_iff] at this
       exact NeBot.ne' this
     have g₀ : Set.Icc (-1:ℝ) 1 ∈ nhds 0 := by
       apply Icc_mem_nhds <;> simp
     have g₁ : Set.Icc (-1:ℝ) 1 ∉ atTop := by
-      simp only [mem_atTop_sets, ge_iff_le, mem_Icc, not_exists, not_forall,
+      simp only [mem_atTop_sets, mem_Icc, not_exists, not_forall,
         not_and, not_le]
       intro y
       use max (y+1) 2
