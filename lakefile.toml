@@ -1,7 +1,7 @@
-name = "CramerLundberg"
+name = "Actlib"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["CramerLundberg"]
+defaultTargets = ["Actlib"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -14,4 +14,4 @@ name = "mathlib"
 scope = "leanprover-community"
 
 [[lean_lib]]
-name = "CramerLundberg"
+name = "Actlib"
