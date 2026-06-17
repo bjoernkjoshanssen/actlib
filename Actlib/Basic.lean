@@ -517,18 +517,18 @@ def integralEquation (α β c : ℝ) (φ : ℝ → ℝ) :=
   ∀ u ≥ 0, φ u = ∫ t, exponentialPDFReal α t * ∫ x in Set.Iic (u + c * t),
     φ (u + c * t - x) * exponentialPDFReal β x
 
-lemma integralEquation_variant (α β c : ℝ) (φ : ℝ → ℝ)
-  (hα : 0 < α) (hβ : 0 < β) (hc : 0 < c)
-  (h : Tendsto φ atTop (nhds 1)) -- added by Aristotle
-  (h_net_profit : α < β * c) -- added by Aristotle
-  (hφ : integralEquation α β c φ) :
-  ∀ u ≥ 0, φ u = 1 - α / (β * c) + α / c *
-    ∫ x : ℝ in Set.Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x) := by
-  /- "The proof requires Fubini's theorem,
-  differentiation under the integral sign, and
-  Volterra equation theory,
-  which are extremely challenging to formalize." -/
-  sorry
+-- lemma integralEquation_variant (α β c : ℝ) (φ : ℝ → ℝ)
+--   (hα : 0 < α) (hβ : 0 < β) (hc : 0 < c)
+--   (h : Tendsto φ atTop (nhds 1)) -- added by Aristotle
+--   (h_net_profit : α < β * c) -- added by Aristotle
+--   (hφ : integralEquation α β c φ) :
+--   ∀ u ≥ 0, φ u = 1 - α / (β * c) + α / c *
+--     ∫ x : ℝ in Set.Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x) := by
+--   /- "The proof requires Fubini's theorem,
+--   differentiation under the integral sign, and
+--   Volterra equation theory,
+--   which are extremely challenging to formalize." -/
+--   sorry
 
 lemma exists_solution (α β c : ℝ) :
     integralEquation α β c 0 := by simp [integralEquation]
@@ -1224,24 +1224,24 @@ def integralEquation₂ (α₀ α₁ Λ₀ Λ₁ c₀ c₁ β₀ β₁ : ℝ)
     φ₁ (u + c₁ * t - x) * exponentialPDFReal β₁ x)
     ))
 
-lemma coupled_equations_trivial_case {α β c : ℝ}
-    (φ : ℝ → ℝ)
-    (hφ : φ = (fun u => 1 - (1 / (1 * 2)) * exp (-(1 - 1 / 2) * u)))
-    (h₀ : integralEquation α β c φ)
-    :
-    integralEquation₂ α α 1 1 c c β β
-        φ φ
-    := by
-    constructor
-    · intro u hu
-      unfold integralEquation at h₀
-      rw [h₀]
-      · simp [exponentialPDFReal, gammaPDFReal]
-        congr
-        ext t
-        split_ifs with g₀
-        · ring_nf
-          sorry
-        · sorry
-      · exact hu
-    · sorry
+-- lemma coupled_equations_trivial_case {α β c : ℝ}
+--     (φ : ℝ → ℝ)
+--     (hφ : φ = (fun u => 1 - (1 / (1 * 2)) * exp (-(1 - 1 / 2) * u)))
+--     (h₀ : integralEquation α β c φ)
+--     :
+--     integralEquation₂ α α 1 1 c c β β
+--         φ φ
+--     := by
+--     constructor
+--     · intro u hu
+--       unfold integralEquation at h₀
+--       rw [h₀]
+--       · simp [exponentialPDFReal, gammaPDFReal]
+--         congr
+--         ext t
+--         split_ifs with g₀
+--         · ring_nf
+--           sorry
+--         · sorry
+--       · exact hu
+--     · sorry

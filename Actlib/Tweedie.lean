@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2026 Bjørn Kjos-Hanssen. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bjørn Kjos-Hanssen
+-/
 import Mathlib.Probability.Distributions.Exponential
 import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.MeasureTheory.Integral.Gamma
@@ -5,10 +10,6 @@ import Mathlib.Probability.Process.Stopping
 import Mathlib.MeasureTheory.Constructions.Polish.Basic
 import CramerLundberg.TweedieDensity
 import Mathlib.MeasureTheory.Measure.WithDensity
-
-open MeasureTheory ProbabilityTheory Real Set Filter
-open scoped ENNReal BigOperators
-
 /-!
 
 # Tweedie distribution
@@ -24,6 +25,8 @@ Main results:
     occurs. `Y` is proportional to time.
 
 -/
+open MeasureTheory ProbabilityTheory Real Set Filter
+open scoped ENNReal BigOperators
 
 noncomputable section
 -- Tweedie distribution!
@@ -70,10 +73,10 @@ lemma tweediePDF_nonneg {y μ φ p : ℝ} (hφ : 0 ≤ φ)
             · linarith
             suffices 0 ≤ j / (p - 1) by
               convert this using 1
-              have : 1 - p ≠ 0 := by linarith
-              have : p - 1 ≠ 0 := by linarith
+              · rfl
+              have : p - 1 = -(1 - p) := by simp
+              rw [this]
               field_simp
-              ring_nf
             apply mul_nonneg
             · simp
             · simp;linarith
@@ -430,12 +433,12 @@ lemma tweediePDF_upper_bound {y μ φ p : ℝ} (hμ : μ = 0) (hφ : φ = 1) (hp
       rw [exp_eq_exp_ℝ]
       have := @NormedSpace.exp_series_hasSum_exp' ℝ ℝ _ _ _ _ _ _ x
       convert this using 1
-      ext n
-      simp only
-      ext n
-      simp
-      rw [mul_comm]
-      exact div_eq_mul_inv _ _
+      · ext n
+        simp only
+      · ext n
+        simp only [smul_eq_mul]
+        rw [mul_comm]
+        exact div_eq_mul_inv _ _
     specialize h 4
     exact h
 
@@ -469,14 +472,14 @@ theorem friday.extracted_1 {y : ℝ} (h : ¬y < 0) :
     apply tsum_nonneg
     intro i
     repeat apply mul_nonneg
-    apply pow_nonneg
-    linarith
-    simp
-    simp
-    simp
-    apply Gamma_nonneg_of_nonneg
-    simp
-    simp
+    · apply pow_nonneg
+      linarith
+    · simp
+    · simp
+    · simp only [inv_nonneg]
+      apply Gamma_nonneg_of_nonneg
+      simp
+    · simp
 
 theorem friday :
     Function.support (fun y ↦
@@ -555,25 +558,25 @@ theorem friday :
               have hxb : x ^ b * (b.factorial : ℝ)⁻¹ > 0 := by
                 apply mul_pos (pow_pos h _)
                 apply inv_pos.mpr
-                simp
+                simp only [Nat.cast_pos]
                 exact Nat.factorial_pos b
               by_cases hb : b = 0
               · subst b
                 simp
               have : (Gamma b)⁻¹ ≤ 1 := by
                 refine (inv_le_one₀ ?_).mpr ?_
-                refine Gamma_pos_of_pos ?_
-                simp
-                omega
+                · refine Gamma_pos_of_pos ?_
+                  simp
+                  omega
                 suffices 1 ≤ ((b-1).factorial : ℝ) by
                     convert this
-                    rfl
+                    · rfl
                     rw [← Gamma_nat_eq_factorial]
                     congr
                     cases b with
                     | zero => simp at hb
                     | succ n => simp
-                simp
+                simp only [Nat.one_le_cast]
                 exact Nat.one_le_iff_ne_zero.mpr <| Nat.factorial_ne_zero _
               rw [mul_le_iff_le_one_right]
               · exact this
@@ -592,31 +595,31 @@ theorem tweedieMeasure'_isProbabilityMeasure.nonzero₁ {μ φ p : ℝ}
         simp
         ring_nf
         refine (lintegral_pos_iff_support ?_).mpr ?_
-        · show Measurable fun y ↦
+        · change Measurable fun y ↦
             dite (y ∈ Set.Iio 0) (fun _ => (0 : ENNReal)) _
           have := @Measurable.dite ℝ ENNReal (Set.Iio 0) (Real.measurableSpace)
-            (ENNReal.measurableSpace) (by intro x;simp;exact x.decidableLT 0;)
+            (ENNReal.measurableSpace) (fun x => x.decidableLT 0)
             (fun _ => 0) (by simp)
             (fun hy => ENNReal.ofNNReal ⟨(hy.1⁻¹ *
                 ∑' (j : ℕ), hy ^ j * 2 ^ j * (↑j.factorial)⁻¹
                 * (Gamma ↑j)⁻¹ * 2 ^ j) *  rexp (-2 - hy.1 * 2), by
                 repeat apply mul_nonneg
-                have := hy.2
-                simp at this ⊢
-                tauto
-                apply tsum_nonneg
-                intro i
-                repeat apply mul_nonneg
-                apply pow_nonneg
-                have := hy.2
-                simp at this
-                tauto
-                simp
-                simp
-                simp
-                apply Gamma_nonneg_of_nonneg
-                simp
-                simp
+                · have := hy.2
+                  simp at this ⊢
+                  tauto
+                · apply tsum_nonneg
+                  intro i
+                  repeat apply mul_nonneg
+                  · apply pow_nonneg
+                    have := hy.2
+                    simp at this
+                    tauto
+                  · simp
+                  · simp
+                  · simp only [inv_nonneg]
+                    apply Gamma_nonneg_of_nonneg
+                    simp
+                  simp
                 apply le_of_lt
                 exact exp_pos (-2 - ↑hy * 2)⟩)
               (by
@@ -628,41 +631,40 @@ theorem tweedieMeasure'_isProbabilityMeasure.nonzero₁ {μ φ p : ℝ}
                   · apply Measurable.tsum -- after updating to 4.30
                     intro i
                     repeat apply Measurable.mul
-                    refine Measurable.pow_const measurable_subtype_coe i
+                    · exact Measurable.pow_const measurable_subtype_coe i
                     all_goals simp
                 refine Measurable.exp ?_
                 refine Measurable.add ?_ ?_
-                simp
-                simp
-                apply Measurable.mul
-                exact measurable_subtype_coe
-                simp
-                  )
-                  (by simp)
+                · simp
+                simp only [measurable_neg_iff]
+                apply Measurable.mul measurable_subtype_coe
+                simp) (by simp)
           convert this
-          rfl
-          simp
+          · rfl
+          · simp
         have : 0 < volume (Set.Ioi (0 : ℝ)) := by simp
         convert this
         rw [← friday]
-        all_goals try tauto
         ext y
-        simp
-        have hnn (h : 0 ≤ y) :  0 ≤ y⁻¹ * ∑' (j : ℕ), y ^ j * 2 ^ j * (↑j.factorial)⁻¹ * (Gamma ↑j)⁻¹ * 2 ^ j
+        simp only [Real.rpow_natCast, one_div, rpow_neg_natCast, zpow_neg, zpow_natCast, inv_pow,
+          inv_inv, Function.mem_support, ne_eq, dite_eq_left_iff, not_lt, ENNReal.coe_eq_zero,
+          not_forall, exp_zero, mul_one]
+        have hnn (h : 0 ≤ y) : 0 ≤ y⁻¹
+          * ∑' (j : ℕ), y ^ j * 2 ^ j * (↑j.factorial)⁻¹ * (Gamma ↑j)⁻¹ * 2 ^ j
             := by
             repeat apply mul_nonneg
-            simp
-            tauto
+            · simp
+              tauto
             apply tsum_nonneg
             intro i
             repeat apply mul_nonneg
-            apply pow_nonneg
-            tauto
-            simp
-            simp
-            simp
-            apply Gamma_nonneg_of_nonneg
-            simp
+            · apply pow_nonneg
+              tauto
+            · simp
+            · simp
+            · simp only [inv_nonneg]
+              apply Gamma_nonneg_of_nonneg
+              simp
             simp
         have mk {a : ℝ} (ha : 0 ≤ a) (h : ⟨a,ha⟩ = (0 : NNReal)) :
             a = 0 := (Nonneg.mk_eq_zero ha).mp h
@@ -671,7 +673,8 @@ theorem tweedieMeasure'_isProbabilityMeasure.nonzero₁ {μ φ p : ℝ}
           constructor
           · intro hc
             apply hh
-            have : y⁻¹ * ∑' (j : ℕ), y ^ j * 2 ^ j * (↑j.factorial)⁻¹ * (Gamma ↑j)⁻¹ * 2 ^ j = 0 := by
+            have : y⁻¹ * ∑' (j : ℕ), y ^ j * 2 ^ j * (↑j.factorial)⁻¹
+              * (Gamma ↑j)⁻¹ * 2 ^ j = 0 := by
                 apply mk (hnn h) hc
             simp_rw [this]
             simp
@@ -681,10 +684,9 @@ theorem tweedieMeasure'_isProbabilityMeasure.nonzero₁ {μ φ p : ℝ}
           use h
           contrapose! hh
           have := mk (by
-            apply mul_nonneg
-            exact hnn h
+            apply mul_nonneg (hnn h)
             apply exp_nonneg) hh
-          simp at this
+          simp only [mul_eq_zero, inv_eq_zero, exp_ne_zero, or_false] at this
           cases this with
           | inl h => subst y;simp;congr
           | inr h =>
@@ -728,7 +730,9 @@ lemma tweedieMeasure'_isProbabilityMeasure {μ φ p : ℝ} (hμ : 0 ≤ μ) (hφ
           ext j
           split_ifs with g₀
           · subst j;simp
-          · simp;left;left;left
+          · simp only [mul_eq_mul_left_iff, mul_eq_mul_right_iff, inv_eq_zero, Nat.cast_eq_zero,
+            pow_eq_zero_iff', ne_eq]
+            repeat left
             have : (4 : ℝ) = 2 ^ 2 := by norm_num
             rw [this]
             rw [mul_comm]
@@ -746,7 +750,7 @@ theorem measurable_dite_withDensity_comap
     @Measurable { x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 }
     (ℝ → ENNReal) Subtype.instMeasurableSpace
     (MeasurableSpace.comap volume.withDensity Measure.instMeasurableSpace)
-    (fun x y ↦ if h : y < 0 then 0 else f x y) := by
+    (fun x y ↦ if y < 0 then 0 else f x y) := by
   rw [measurable_iff_comap_le, MeasurableSpace.comap_comp, ← measurable_iff_comap_le]
   apply Measure.measurable_of_measurable_coe
   intro s hs
@@ -874,18 +878,23 @@ def Tweedie : @ProbabilityTheory.Kernel (ℝ) ℝ _ Real.measurableSpace := {
     --                 exact Measurable.of_comap_le fun s a ↦ a
     --                 have {α : Type} [MeasurableSpace α]
     --                   (f : α → ℝ) (hf : ∀ x, 0 ≤ f x)
-    --                   (h : Measurable f) : Measurable fun x => (⟨f x, hf x⟩ : {x : ℝ // 0 ≤ x}) := by
+    --                   (h : Measurable f) : Measurable
+    --  fun x => (⟨f x, hf x⟩ : {x : ℝ // 0 ≤ x}) := by
     --                   exact Measurable.subtype_mk h
     --                 specialize @this ( { x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ)
     --                   Prod.instMeasurableSpace
 
     --                 have (f :  { x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ → ℝ)
     --                     (hf : ∀ x, 0 ≤ f x) (hm : @Measurable
-    --                         ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ) ℝ Prod.instMeasurableSpace
-    --                         (MeasurableSpace.comap (by exact fun a ↦ ENNReal.ofReal a) ENNReal.measurableSpace) f)
+    --                         ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ) ℝ
+    --  Prod.instMeasurableSpace
+    --                         (MeasurableSpace.comap (by exact fun a ↦ ENNReal.ofReal a)
+    --  ENNReal.measurableSpace) f)
     --                     : @Measurable
-    --                     ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ) { r // 0 ≤ r } Prod.instMeasurableSpace
-    --                     (MeasurableSpace.comap ENNReal.ofNNReal ENNReal.measurableSpace) fun x => (⟨f x, hf x⟩ : {x : ℝ // 0 ≤ x}) := by
+    --                     ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ)
+    --  { r // 0 ≤ r } Prod.instMeasurableSpace
+    --                     (MeasurableSpace.comap ENNReal.ofNNReal ENNReal.measurableSpace)
+    -- fun x => (⟨f x, hf x⟩ : {x : ℝ // 0 ≤ x}) := by
     --                     -- (MeasurableSpace.comap ENNReal.ofNNReal ENNReal.measurableSpace)
     --                     clear this
     --                     clear this
@@ -894,21 +903,27 @@ def Tweedie : @ProbabilityTheory.Kernel (ℝ) ℝ _ Real.measurableSpace := {
     --                     sorry
     --                     --exact Measurable.subtype_mk hm
     --                 show @Measurable
-    --                     ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ) { r // 0 ≤ r } Prod.instMeasurableSpace
+    --                     ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ)
+    --{ r // 0 ≤ r } Prod.instMeasurableSpace
     --                     (MeasurableSpace.comap ENNReal.ofNNReal ENNReal.measurableSpace) _
     --                 apply this
-    --                 have := @Measurable.mul ℝ ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ)
-    --                     (by exact (MeasurableSpace.comap (fun a ↦ ENNReal.ofReal a) ENNReal.measurableSpace)) _
+    --                 have := @Measurable.mul ℝ
+    -- ({ x : ℝ × ℝ × ℝ // 0 ≤ x.1 ∧ 1 < x.2.2 ∧ x.2.2 ≤ 2 } × ℝ)
+    --                     (by exact (MeasurableSpace.comap (fun a ↦ ENNReal.ofReal a)
+    --ENNReal.measurableSpace)) _
     --                     (Prod.instMeasurableSpace)
     --                     (fun x => (x.2⁻¹ *
     --                         ∑' (j : ℕ),
     --                             x.2 ^ (-((j:ℝ) * ((2 - (x.1.1).2.2) / (1 - (x.1.1).2.2)))) *
-    --                                 ((x.1.1).2.2 - 1) ^ ((2 - (x.1.1).2.2) / (1 - (x.1.1).2.2) * ↑j) /
-    --                             ((x.1.1).1 ^ (↑j * (1 - (2 - (x.1.1).2.2) / (1 - (x.1.1).2.2))) * (2 - (x.1.1).2.2) ^ j * ↑j.factorial *
+    --                                 ((x.1.1).2.2 - 1) ^
+    --((2 - (x.1.1).2.2) / (1 - (x.1.1).2.2) * ↑j) /
+    --                             ((x.1.1).1 ^ (↑j * (1 - (2 - (x.1.1).2.2) / (1 - (x.1.1).2.2)))
+    --* (2 - (x.1.1).2.2) ^ j * ↑j.factorial *
     --                                 Gamma (-(↑j * ((2 - (x.1.1).2.2) / (1 - (x.1.1).2.2)))))))
     --                     (fun x => rexp
     --                         ((x.1.1).1⁻¹ *
-    --                             (x.2 * (x.1.1).1 ^ (1 - (x.1.1).2.2) / (1 - (x.1.1).2.2) - (x.1.1).1 ^ (2 - (x.1.1).2.2) / (2 - (x.1.1).2.2))))
+    --                             (x.2 * (x.1.1).1 ^ (1 - (x.1.1).2.2)
+    -- / (1 - (x.1.1).2.2) - (x.1.1).1 ^ (2 - (x.1.1).2.2) / (2 - (x.1.1).2.2))))
     --                     (by
 
     --                     sorry) (by sorry) (by sorry)
@@ -961,9 +976,11 @@ def Tweedie : @ProbabilityTheory.Kernel (ℝ) ℝ _ Real.measurableSpace := {
     --                 /-
     --                 @Eq
 
-    --                 @MeasurableSpace.comap (ℝ → ℝ≥0∞) (Measure ℝ) ℙ.withDensity Measure.instMeasurableSpace : MeasurableSpace (ℝ → ℝ≥0∞)
+    --                 @MeasurableSpace.comap
+    --(ℝ → ℝ≥0∞) (Measure ℝ) ℙ.withDensity Measure.instMeasurableSpace : MeasurableSpace (ℝ → ℝ≥0∞)
 
-    --                 (@MeasurableSpace.pi ℝ (fun x ↦ ℝ≥0∞) fun a ↦ ENNReal.measurableSpace : MeasurableSpace (ℝ → ℝ≥0∞))
+    --                 (@MeasurableSpace.pi ℝ (fun x ↦ ℝ≥0∞) fun a ↦ ENNReal.measurableSpace :
+    --MeasurableSpace (ℝ → ℝ≥0∞))
     --                 -/
     --             · sorry
     --     }
