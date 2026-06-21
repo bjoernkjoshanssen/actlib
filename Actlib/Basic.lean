@@ -15,7 +15,7 @@ import Mathlib.Probability.Process.Stopping
 Main results:
 * `first_loss_is_ruinous' (r s : ℝ) (hs : 0 < s) (hr : 0 < r) :`
     `(Measure.prod (expMeasure r) (expMeasure s)) {x | x.1 ≤ x.2}`
-    `= some ⟨r / (r + s), by field_simp;linarith⟩`
+    `= some ⟨r / (r + s), div_add_nonneg hs hr⟩`
     For two independent random variables `X~exponential(r)` and `Y~exponential(s)`,
     where `r` and `s` are the rates of occurrence (so `E(X)=1/r` and `E(Y)/1/s`)
     the probability that `X≤Y` is `r/(r+s)`.
