@@ -8,7 +8,7 @@ import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.MeasureTheory.Integral.Gamma
 import Mathlib.Probability.Process.Stopping
 import Mathlib.MeasureTheory.Constructions.Polish.Basic
-import CramerLundberg.TweedieDensity
+import Actlib.TweedieDensity
 import Mathlib.MeasureTheory.Measure.WithDensity
 /-!
 
