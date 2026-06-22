@@ -1,28 +1,27 @@
-import Mathlib
+/-
+Copyright (c) 2026 Bjørn Kjos-Hanssen. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bjørn Kjos-Hanssen
+-/
+module
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+/-! # Tweedie distribution density (μ=1, φ=1, p=3/2)
+
+We define the Tweedie density and prove it is integrable with respect to Lebesgue measure.
+-/
 
 open scoped BigOperators
 open scoped Real
 open scoped Nat
 open scoped Pointwise
-
-set_option maxRecDepth 4000
-set_option synthInstance.maxSize 128
-
-set_option relaxedAutoImplicit false
-set_option autoImplicit false
-
-
-set_option grind.warning false
-
 open Real MeasureTheory Set Filter Topology
 open scoped ENNReal NNReal
 
+@[expose] public section
 noncomputable section
 
-/-! # Tweedie distribution density (μ=1, φ=1, p=3/2)
-
-We define the Tweedie density and prove it is integrable with respect to Lebesgue measure.
--/
 
 /-- The Tweedie density series term for index j and point y. -/
 def tweedieTerm (j : ℕ) (y : ℝ) : ℝ :=

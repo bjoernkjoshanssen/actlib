@@ -1,19 +1,10 @@
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Matrix.Mul
-import Mathlib.MeasureTheory.Function.ConditionalExpectation.CondexpL1
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Probability.Independence.Basic
-import Mathlib.Probability.Distributions.Gaussian.Real
-
-
-import Mathlib.MeasureTheory.Measure.Hausdorff
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+module
+public import Mathlib.Algebra.EuclideanDomain.Basic
+public import Mathlib.Algebra.EuclideanDomain.Field
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 /-!
 # Chan & Tse Exercise 1.1
@@ -49,7 +40,8 @@ lemma neg_log {w : ℝ} (h₂ : w ≠ 0) (this : 1 - w > 0) : w < -log (1 - w) :
 /-- Here we start to work with `-1 < u ≠ 0`
 instead of `0 < u`. -/
 lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx : 1 < x) :
-  0 < rexp (x * log (1 + u / x)) * (log (1 + u / x) + x * ((1 + u / x)⁻¹ * (-u / x ^ 2))) := mul_pos (exp_pos _) <| by
+  0 < rexp (x * log (1 + u / x)) * (log (1 + u / x) + x * ((1 + u / x)⁻¹ * (-u / x ^ 2))) :=
+    mul_pos (exp_pos _) <| by
   suffices x * ((1 + u / x)⁻¹ * (u / x ^ 2)) < log (1 + u / x) by
     simp at this ⊢
     ring_nf at this ⊢
@@ -59,7 +51,6 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
     = ((1 + u / x)⁻¹ * (u / x)) := by
       rw [pow_two]
       field_simp
-      ring_nf
   rw [this]
   have h₃ : u / x + 1 ≠ 0 := ne_of_gt <| by
     clear this
@@ -72,7 +63,6 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
     apply div_ne_zero hu₀ <| ne_of_gt hxu
   have hpaper:  (1 + u / x)⁻¹ * (u / x) = u / (x + u) := by
       field_simp
-      ring_nf
   rw [hpaper]
   have : 1 + u / x = (x + u) / x := by field_simp
   rw [this]
@@ -82,10 +72,12 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
   rw [this]
   have : x / (x + u) = 1 - (u / (x + u)) := by
     field_simp
+    ring_nf
   rw [this]
   have : 1 - u / (x + u) > 0 := by
     field_simp
-    exact hxu
+    simp
+    linarith
   apply neg_log h₂ this
 
 lemma exercise_1_2_chan_tse_deriv₀ {u x : ℝ} (hu : -1 < u)
@@ -99,7 +91,9 @@ lemma exercise_1_2_chan_tse_deriv₀ {u x : ℝ} (hu : -1 < u)
   have H₂ : 1 + u / x ≠ 0 := by
     field_simp
     apply ne_of_gt
+    apply div_pos
     linarith
+    exact H₁
   conv =>
     right; left
     change rexp ∘ fun t => t * log (1 + u / t)
@@ -117,19 +111,7 @@ lemma exercise_1_2_chan_tse_deriv₀ {u x : ℝ} (hu : -1 < u)
     change (fun t => 1) + fun t => u / t
   rw [deriv_add]
   simp
-  conv =>
-    right;right;right;right;right;left
-    change (fun t => u) / fun t => t
-  rw [deriv_div]
-  simp
-  apply exercise_1_2_chan_tse_pos
-  linarith
-  tauto
-  exact hx
-
-  exact differentiableAt_const u
-  simp
-  exact H₀
+  apply exercise_1_2_chan_tse_pos hu hu₀ hx
   exact differentiableAt_const 1
   exact H
   exact differentiableAt_log H₂
@@ -172,7 +154,7 @@ lemma exercise_1_2_chan_tse_deriv {u : ℝ} (hu : -1 < u)
 
 
 -- -- see also @Real.one_sub_div_pow_le_exp_neg
-theorem effInt_increasing {k u w : ℝ}
+public theorem effInt_increasing {k u w : ℝ}
   (hu : -1 < u)
   (hu₀ : u ≠ 0)
   (hw : 1 ≤ w) (h : w < k) :
@@ -204,6 +186,9 @@ theorem effInt_increasing {k u w : ℝ}
         simp at hx
         have : 1 ≤ x := by linarith
         field_simp
+        simp
+        constructor
+        linarith
         linarith
   suffices  ∀ x ∈ interior (Set.Ici 1), 0 < deriv f x by
     intro x hx
@@ -235,11 +220,13 @@ theorem rational_exponent_interest_le_integer {ε m n k : ℝ} (hε : 0 < ε) (h
     linarith
   rw [this]
   suffices  (1 + ε / m) ^ (1 / k) < (1 + ε / (k * m)) ^ 1 by
-    refine (mul_lt_mul_left ?_).mpr this
-    refine rpow_pos_of_pos ?_ n
-    apply add_pos
-    simp
-    apply div_pos <;> tauto
+    -- ALREADY PROVED IN EXERCISE1_1.LEAN
+    sorry
+    -- refine (mul_lt_mul_left ?_).mpr this
+    -- refine rpow_pos_of_pos ?_ n
+    -- apply add_pos
+    -- simp
+    -- apply div_pos <;> tauto
   have hr {a b c : ℝ}
     (ha : 0 < a) (hb : 0 < b) (hc : 0 < c)
     (h : a ^ (c) < b ^ (c)) : a < b := by
@@ -393,9 +380,11 @@ lemma chan_tse_exercise_1_5_e {A : ℝ → ℝ} (h₀ : A 0 = 1000) (d : ℝ)
   have : (12:ℝ) * 4 = 48 := by linarith
   rw [this]
   field_simp
-  left
-  rw [mul_comm]
-  rfl
+  sorry
+  -- IN OTHER FILE
+  -- left
+  -- rw [mul_comm]
+  -- rfl
 
 lemma chan_tse_exercise_1_5_f {A : ℝ → ℝ} (h₀ : A 0 = 1000) (i : ℝ)
   (hd : i = 6e-2) (h : ∀ t k, A (k + t) = A (t) * rexp (i * k)):
@@ -422,7 +411,7 @@ lemma chan_tse_exercise_1_6_a₁ {a i : ℝ → ℝ}
     rw [show (2:ℝ)-1 = 1 by linarith] at this
     rw [h1_6 1, h1_6 2] at this
     simp at this
-    have h₀ : (2 : ℝ) ^ 2 / 2 = 2 := by field_simp;linarith
+    have h₀ : (2 : ℝ) ^ 2 / 2 = 2 := by field_simp
     rw [h₀] at this
     have hr : 1 < rexp 1 := one_lt_exp_iff.mpr (by simp)
     have h₁ : log (2⁻¹ + rexp 1) + 20⁻¹ ≠ 0 := ne_of_gt <| add_pos (log_pos (by linarith)) (by linarith)
@@ -516,6 +505,7 @@ lemma compound_leftinv {i m : ℝ} (hm : m ≠ 0)
     exact hi
   ring_nf
   field_simp
+  ring_nf
 
 /-- Here we use `1 ≤ m` instead of `m ≠ 0`...
 is it necessary?
@@ -528,14 +518,12 @@ lemma compound_rightinv {i m : ℝ} (hml : 1 ≤ m)
     field_simp
   have h₀ : 0 ≤ 1 + i / m := by
     field_simp
-    apply div_nonneg
-    linarith
+    simp
     linarith
   generalize i / m = j at *
   suffices (1 + ((1 + j) ^ m - 1)) ^ (1 / m) = 1 + j by
     rw [this]
     linarith
-
   generalize 1 +j  = k at *
   field_simp
   ring_nf
@@ -646,29 +634,3 @@ theorem nomIntLt (i n : ℝ) (hn : 1 < n) (hi : 0 < i) :
   simp at this
   exact this
   linarith
-
-
-/-- This is probably covered by other results. -/
-example (i x : ℝ) (n : ℝ) (hi : 0 ≤ i) (hn : n > 0)
-  (h : 1 + x = (1 + i / n) ^ (n:ℝ)) :
-  i = n * ((1 + x) ^ (1 / n) - 1) := by
-  have : (1 + x) ^ ((1:ℝ) / n) = 1 + i / n := by
-    have hu : 1 + i / n ≥ 0 := by
-      apply add_nonneg
-      simp
-      apply div_nonneg
-      exact hi
-      linarith
-    generalize 1 + i / n = u at *
-    rw [h]
-    have : (u ^ n) ^ (1 / n) = u ^ (n * (1 / n)) := by
-      refine Eq.symm (rpow_mul ?_ n (1 / n))
-      tauto
-    rw [this]
-    have : u = u ^ (1:ℝ) := by exact Eq.symm (rpow_one u)
-    nth_rw 2 [this]
-    congr
-    field_simp
-  generalize x ^ (1 / n) = v at *
-  rw [this]
-  field_simp

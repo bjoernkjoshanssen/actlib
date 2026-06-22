@@ -10,11 +10,11 @@ import Mathlib.Data.Complex.Basic
 
 -/
 
-def P_ (P M Y : ℂ) : ℕ → ℂ := λ n ↦ match n with
+def P_ (P M Y : ℂ) : ℕ → ℂ := fun n ↦ match n with
 | 0 => P
 | n + 1 => (P_ P M Y n)  * M - Y
 
-theorem Sipser_025 (P M Y : ℂ) (hM: M - 1 ≠ 0) (t : ℕ) :
+theorem Sipser_025 (P M Y : ℂ) (hM : M - 1 ≠ 0) (t : ℕ) :
     P_ P M Y t = P * M^t - Y * (M^t - 1)/(M-1) := by
   induction t with
   | zero => simp; rfl

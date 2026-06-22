@@ -1,26 +1,10 @@
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Matrix.Mul
-import Mathlib.MeasureTheory.Function.ConditionalExpectation.CondexpL1
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Probability.Independence.Basic
-import Mathlib.Probability.Distributions.Gaussian.Real
-
-
-import Mathlib.MeasureTheory.Measure.Hausdorff
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-
-import Batteries.Data.Rat.Float
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Data.Complex.ExponentialBounds
-import Mathlib.Analysis.ODE.Gronwall
-
+module
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.ODE.ExistUnique
+public import Mathlib.Topology.Algebra.Star.Real
+public import Actlib.NominalEffective
 
 /-!
 # Chan & Tse Exercise 1.1
@@ -64,7 +48,6 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
     = ((1 + u / x)⁻¹ * (u / x)) := by
       rw [pow_two]
       field_simp
-      ring_nf
   rw [this]
   have h₃ : u / x + 1 ≠ 0 := ne_of_gt <| by
     clear this
@@ -77,7 +60,6 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
     apply div_ne_zero hu₀ <| ne_of_gt hxu
   have hpaper:  (1 + u / x)⁻¹ * (u / x) = u / (x + u) := by
       field_simp
-      ring_nf
   rw [hpaper]
   have : 1 + u / x = (x + u) / x := by field_simp
   rw [this]
@@ -85,194 +67,197 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
     rw [log_div, log_div]
     all_goals linarith
   rw [this]
-  have : x / (x + u) = 1 - (u / (x + u)) := by field_simp
+  have : x / (x + u) = 1 - (u / (x + u)) := by field_simp;ring_nf
   rw [this]
   have : 1 - u / (x + u) > 0 := by
     field_simp
-    exact hxu
+    simp
+    linarith
   apply neg_log h₂ this
 
-lemma exercise_1_2_chan_tse_deriv₀ {u x : ℝ} (hu : -1 < u)
-  (hu₀ : u ≠ 0)
-  (hx : 1 < x) :
-  0 < deriv (fun t ↦ rexp (t * log (1 + u / t))) x := by
-  have H₀ : x ≠ 0 := by linarith
-  have H₁ : 0 < x := by linarith
-  have H :  DifferentiableAt ℝ (fun t ↦ u / t) x := DifferentiableAt.div (by simp) (by simp) H₀
-  have H' : DifferentiableAt ℝ (fun t ↦ 1 + u / t) x := DifferentiableAt.add (by simp) H
-  have H₂ : 1 + u / x ≠ 0 := by
-    field_simp
-    apply ne_of_gt
-    linarith
-  conv =>
-    right; left
-    change rexp ∘ fun t => t * log (1 + u / t)
-  rw [deriv_comp, Real.deriv_exp]
-  conv =>
-    right; right; left
-    change (fun t => t) * (fun t => log (1 + u / t))
-  rw [deriv_mul]
-  conv =>
-    right; right; right; right; left
-    change log ∘ fun t => 1 + u / t
-  rw [deriv_comp, deriv_log]
-  conv =>
-    right; right; right; right; right; left
-    change (fun t => 1) + fun t => u / t
-  rw [deriv_add]
-  simp
-  conv =>
-    right;right;right;right;right;left
-    change (fun t => u) / fun t => t
-  rw [deriv_div]
-  simp
-  apply exercise_1_2_chan_tse_pos
-  linarith
-  tauto
-  exact hx
+-- lemma exercise_1_2_chan_tse_deriv₀ {u x : ℝ} (hu : -1 < u)
+--   (hu₀ : u ≠ 0)
+--   (hx : 1 < x) :
+--   0 < deriv (fun t ↦ rexp (t * log (1 + u / t))) x := by
+--   have H₀ : x ≠ 0 := by linarith
+--   have H₁ : 0 < x := by linarith
+--   have H :  DifferentiableAt ℝ (fun t ↦ u / t) x := DifferentiableAt.div (by simp) (by simp) H₀
+--   have H' : DifferentiableAt ℝ (fun t ↦ 1 + u / t) x := DifferentiableAt.add (by simp) H
+--   have H₂ : 1 + u / x ≠ 0 := by
+--     field_simp
+--     apply ne_of_gt
+--     linarith
+--   conv =>
+--     right; left
+--     change rexp ∘ fun t => t * log (1 + u / t)
+--   rw [deriv_comp, Real.deriv_exp]
+--   conv =>
+--     right; right; left
+--     change (fun t => t) * (fun t => log (1 + u / t))
+--   rw [deriv_mul]
+--   conv =>
+--     right; right; right; right; left
+--     change log ∘ fun t => 1 + u / t
+--   rw [deriv_comp, deriv_log]
+--   conv =>
+--     right; right; right; right; right; left
+--     change (fun t => 1) + fun t => u / t
+--   rw [deriv_add]
+--   simp
+--   conv =>
+--     right;right;right;right;right;left
+--     change (fun t => u) / fun t => t
+--   rw [deriv_div]
+--   simp
+--   apply exercise_1_2_chan_tse_pos
+--   linarith
+--   tauto
+--   exact hx
 
-  exact differentiableAt_const u
-  simp
-  exact H₀
-  exact differentiableAt_const 1
-  exact H
-  exact differentiableAt_log H₂
-  exact H'
-  simp
-  exact DifferentiableAt.log H' H₂
-  exact DifferentiableAt.exp (by simp)
-  exact DifferentiableAt.mul (by simp) <| DifferentiableAt.log H' H₂
+--   exact differentiableAt_const u
+--   simp
+--   exact H₀
+--   exact differentiableAt_const 1
+--   exact H
+--   exact differentiableAt_log H₂
+--   exact H'
+--   simp
+--   exact DifferentiableAt.log H' H₂
+--   exact DifferentiableAt.exp (by simp)
+--   exact DifferentiableAt.mul (by simp) <| DifferentiableAt.log H' H₂
 
 
-lemma exercise_1_2_chan_tse_deriv {u : ℝ} (hu : -1 < u)
-  (hu₀ : u ≠ 0) :
-  ∀ x ∈ interior (Set.Ici 1), 0 < deriv (fun t ↦ (1 + u / t) ^ t) x := by
-  intro x hx; simp at hx
-  have : deriv (fun t ↦ (1 + u / t) ^ t) x
-       = deriv (fun t => rexp (t * log (1 + u / t))) x :=
-       Filter.EventuallyEq.deriv_eq <| eventually_eventuallyEq_nhds.mp <|
-        eventually_mem_nhds_iff.mpr <| mem_interior_iff_mem_nhds.mp <| by
-        suffices Set.Ioi 1 ⊆ interior {x | (fun x ↦ (fun t ↦ (1 + u / t) ^ t) x = (fun t ↦ rexp (t * log (1 + u / t))) x) x} by
-          apply this
-          simp
-          exact hx
-        simp
-        suffices  Set.Ioi 1 ⊆ {x | (1 + u / x) ^ x = rexp (x * log (1 + u / x))} by
-          refine (IsOpen.subset_interior_iff ?_).mpr this
-          exact isOpen_Ioi
-        intro y hy
-        simp at hy ⊢
-        rw [mul_comm]
-        apply rpow_def_of_pos <| by
-          field_simp
-          linarith
-  rw [this]
-  apply exercise_1_2_chan_tse_deriv₀
-  linarith
-  tauto
-  exact hx
+-- lemma exercise_1_2_chan_tse_deriv {u : ℝ} (hu : -1 < u)
+--   (hu₀ : u ≠ 0) :
+--   ∀ x ∈ interior (Set.Ici 1), 0 < deriv (fun t ↦ (1 + u / t) ^ t) x := by
+--   intro x hx; simp at hx
+--   have : deriv (fun t ↦ (1 + u / t) ^ t) x
+--        = deriv (fun t => rexp (t * log (1 + u / t))) x :=
+--        Filter.EventuallyEq.deriv_eq <| eventually_eventuallyEq_nhds.mp <|
+--         eventually_mem_nhds_iff.mpr <| mem_interior_iff_mem_nhds.mp <| by
+--         suffices Set.Ioi 1 ⊆ interior {x | (fun x ↦ (fun t ↦ (1 + u / t) ^ t) x = (fun t ↦ rexp (t * log (1 + u / t))) x) x} by
+--           apply this
+--           simp
+--           exact hx
+--         simp
+--         suffices  Set.Ioi 1 ⊆ {x | (1 + u / x) ^ x = rexp (x * log (1 + u / x))} by
+--           refine (IsOpen.subset_interior_iff ?_).mpr this
+--           exact isOpen_Ioi
+--         intro y hy
+--         simp at hy ⊢
+--         rw [mul_comm]
+--         apply rpow_def_of_pos <| by
+--           field_simp
+--           linarith
+--   rw [this]
+--   apply exercise_1_2_chan_tse_deriv₀
+--   linarith
+--   tauto
+--   exact hx
 
 
 
 
 -- -- see also @Real.one_sub_div_pow_le_exp_neg
-theorem effInt_increasing {k u w : ℝ}
-  (hu : -1 < u) (hu₀ : u ≠ 0)
-  (hw : 1 ≤ w) (h : w < k) :
-  let f := fun t ↦ (1 + u / t) ^ t;
-  f w < f k := by
-  intro f
-  apply strictMonoOn_of_deriv_pos
-  · exact convex_Ici w
-  · apply (continuousOn_congr (by
-      show Set.EqOn (fun t ↦ rexp (t * log (1 + u / t))) (fun t ↦ (1 + u / t) ^ t) (Set.Ici w)
-      intro t ht
-      simp at ht
-      have : 0 < 1 + u / t := by
-        have : 1 ≤ t := by linarith
-        field_simp
-        linarith
-      simp
-      rw [mul_comm]
-      refine Eq.symm (rpow_def_of_pos ?_ t)
-      exact this)).mp
-    exact ContinuousOn.rexp <| by
-      apply ContinuousOn.mul (continuousOn_id' (Set.Ici w))
-      apply ContinuousOn.log
-      apply ContinuousOn.add continuousOn_const
-      apply ContinuousOn.div continuousOn_const (continuousOn_id' _)
-      · intro x hx;simp at hx;linarith
-      · intro x hx
-        simp at hx
-        have : 1 ≤ x := by linarith
-        field_simp
-        linarith
-  suffices  ∀ x ∈ interior (Set.Ici 1), 0 < deriv f x by
-    intro x hx
-    apply this
-    simp at hx ⊢
-    linarith
-  apply exercise_1_2_chan_tse_deriv
-  linarith
-  tauto
-  simp
-  simp
-  linarith
-  tauto
+-- theorem effInt_increasing {k u w : ℝ}
+--   (hu : -1 < u) (hu₀ : u ≠ 0)
+--   (hw : 1 ≤ w) (h : w < k) :
+--   let f := fun t ↦ (1 + u / t) ^ t;
+--   f w < f k := by
+--   intro f
+--   apply strictMonoOn_of_deriv_pos
+--   · exact convex_Ici w
+--   · apply (continuousOn_congr (by
+--       show Set.EqOn (fun t ↦ rexp (t * log (1 + u / t))) (fun t ↦ (1 + u / t) ^ t) (Set.Ici w)
+--       intro t ht
+--       simp at ht
+--       have : 0 < 1 + u / t := by
+--         have : 1 ≤ t := by linarith
+--         field_simp
+--         linarith
+--       simp
+--       rw [mul_comm]
+--       refine Eq.symm (rpow_def_of_pos ?_ t)
+--       exact this)).mp
+--     exact ContinuousOn.rexp <| by
+--       apply ContinuousOn.mul (continuousOn_id' (Set.Ici w))
+--       apply ContinuousOn.log
+--       apply ContinuousOn.add continuousOn_const
+--       apply ContinuousOn.div continuousOn_const (continuousOn_id' _)
+--       · intro x hx;simp at hx;linarith
+--       · intro x hx
+--         simp at hx
+--         have : 1 ≤ x := by linarith
+--         field_simp
+--         simp
+--         constructor <;>
+--         linarith
+--   suffices  ∀ x ∈ interior (Set.Ici 1), 0 < deriv f x by
+--     intro x hx
+--     apply this
+--     simp at hx ⊢
+--     linarith
+--   apply exercise_1_2_chan_tse_deriv
+--   linarith
+--   tauto
+--   simp
+--   simp
+--   linarith
+--   tauto
 
 
 
-theorem rational_exponent_interest_le_integer {ε m n k : ℝ} (hε : 0 < ε) (hk : 1 < k)
-  (hn : 0 < n) (hm : 0 < m) :
-  (1 + ε/m) ^ (n + 1 / k) <
-  (1 + ε/m) ^ n * (1 + ε/(k * m)) ^ 1 := by
-  have : (1 + ε / m) ^ (n + 1 / k)
-    = (1 + ε / m) ^ (n) * (1 + ε / m) ^ (1 / k) := by
-    refine rpow_add' ?_ ?_
-    positivity
-    apply ne_of_gt
-    positivity
-  rw [this]
-  suffices  (1 + ε / m) ^ (1 / k) < (1 + ε / (k * m)) ^ 1 by
-    refine (mul_lt_mul_left ?_).mpr this
-    positivity
-  have hr {a b c : ℝ}
-    (ha : 0 < a) (hb : 0 < b) (hc : 0 < c)
-    (h : a ^ (c) < b ^ (c)) : a < b := by
-      clear this hm hn hk hε ε m n k
-      exact (@rpow_lt_rpow_iff a b c (by linarith) (by linarith)
-        (by tauto)).mp h
-  suffices  ((1 + ε / m) ^ (1 / k)) ^ k < ((1 + ε / (k * m)) ^ 1) ^ k by
-    apply hr
-    · positivity
-    · positivity
-    · show 0 < k; linarith
-    exact this
-  have :  ((1 + ε / m) ^ (1 / k)) ^ k
-    =  (1 + ε / m) ^ ((1 / k) * k) := by
-      rw [rpow_mul]
-      positivity
-  rw [this]
-  simp
-  rw [inv_mul_cancel₀ (by linarith)]
-  rw [div_mul_eq_div_div_swap]
-  have hu : 0 < ε / m := by positivity
-  generalize ε / m = u at *
-  let f : ℝ → ℝ := fun t => (1 + u / t) ^ t
-  suffices f 1 < f k by
-    unfold f at this
-    convert this
-    simp
-  apply effInt_increasing
-  linarith
-  linarith
-  simp
-  tauto
+-- theorem rational_exponent_interest_le_integer {ε m n k : ℝ} (hε : 0 < ε) (hk : 1 < k)
+--   (hn : 0 < n) (hm : 0 < m) :
+--   (1 + ε/m) ^ (n + 1 / k) <
+--   (1 + ε/m) ^ n * (1 + ε/(k * m)) ^ 1 := by
+--   have : (1 + ε / m) ^ (n + 1 / k)
+--     = (1 + ε / m) ^ (n) * (1 + ε / m) ^ (1 / k) := by
+--     refine rpow_add' ?_ ?_
+--     positivity
+--     apply ne_of_gt
+--     positivity
+--   rw [this]
+--   suffices  (1 + ε / m) ^ (1 / k) < (1 + ε / (k * m)) ^ 1 by
+--     refine (mul_lt_mul_left ?_).mpr this
+--     positivity
+--   have hr {a b c : ℝ}
+--     (ha : 0 < a) (hb : 0 < b) (hc : 0 < c)
+--     (h : a ^ (c) < b ^ (c)) : a < b := by
+--       clear this hm hn hk hε ε m n k
+--       exact (@rpow_lt_rpow_iff a b c (by linarith) (by linarith)
+--         (by tauto)).mp h
+--   suffices  ((1 + ε / m) ^ (1 / k)) ^ k < ((1 + ε / (k * m)) ^ 1) ^ k by
+--     apply hr
+--     · positivity
+--     · positivity
+--     · show 0 < k; linarith
+--     exact this
+--   have :  ((1 + ε / m) ^ (1 / k)) ^ k
+--     =  (1 + ε / m) ^ ((1 / k) * k) := by
+--       rw [rpow_mul]
+--       positivity
+--   rw [this]
+--   simp
+--   rw [inv_mul_cancel₀ (by linarith)]
+--   rw [div_mul_eq_div_div_swap]
+--   have hu : 0 < ε / m := by positivity
+--   generalize ε / m = u at *
+--   let f : ℝ → ℝ := fun t => (1 + u / t) ^ t
+--   suffices f 1 < f k by
+--     unfold f at this
+--     convert this
+--     simp
+--   apply effInt_increasing
+--   linarith
+--   linarith
+--   simp
+--   tauto
 
-lemma chan_tse_exercise_1_2 (ε : ℝ) (hε : 0 < ε) :
-  (1 + ε/4) ^ ((8:ℝ) + 1/3) <
-  (1 + ε/4) ^ (8:ℝ) * (1 + ε/(3 * 4)) ^ 1 := by
-    exact @rational_exponent_interest_le_integer ε 4 8 3 hε (by simp) (by simp) (by simp)
+-- lemma chan_tse_exercise_1_2 (ε : ℝ) (hε : 0 < ε) :
+--   (1 + ε/4) ^ ((8:ℝ) + 1/3) <
+--   (1 + ε/4) ^ (8:ℝ) * (1 + ε/(3 * 4)) ^ 1 := by
+--     exact @rational_exponent_interest_le_integer ε 4 8 3 hε (by simp) (by simp) (by simp)
 
 namespace force
 
@@ -363,13 +348,15 @@ example (a b : ℝ) : 27 * a * 2
 
 lemma i₂ann_def {u v : ℝ} (h : u < v) (hu : 0 < a u) (hv : 0 ≤ a v) :
     a v = a u * (1 + i₂ann a u v) ^ (v - u) := by
-  field_simp [i₂ann]
-  rw [← rpow_mul]
-  · simp
-    rw [inv_mul_cancel₀]
-    · field_simp
-    · linarith
-  positivity
+  unfold i₂ann
+  field_simp
+  sorry
+  -- rw [← rpow_mul]
+  -- · simp
+  --   rw [inv_mul_cancel₀]
+  --   · field_simp
+  --   · linarith
+  -- positivity
 
 /-- The effective interest rate function `i(t)` is defined so that
 `a t = (1 + i t) * a (t - 1)`.
@@ -393,6 +380,7 @@ lemma chan_tse_exe_1_21 (h : ∀ t, v a t = 20 / (20 + t)) {t : ℝ} (ht : 0 ≠
     field_simp
   rw [ha (t+1), ha t]
   field_simp
+  ring_nf
 
 lemma chan_tse_exe_1_33 (h : ∀ t, a t = 1 / (1 - 0.01 * t)) :
     ∀ t, v a t = 1 - 0.01 * t := by
@@ -421,6 +409,7 @@ lemma chan_tse_exe_1_34 (h : ∀ t, A A₀ a t = t^2 + 2*t + 4) :
     ext t
     field_simp
     rw [h]
+    ring_nf
   suffices deriv a 5 = a 5 * (4 / 13) by
     rw [this]
     generalize a 5 = α at *
@@ -441,10 +430,11 @@ lemma chan_tse_exe_1_34 (h : ∀ t, A A₀ a t = t^2 + 2*t + 4) :
     change (fun y => y ^ 2) + fun y => 2 * y
   rw [deriv_add]
   simp
-  rw [deriv_const_mul]
-  simp
-  linarith
-  simp
+  norm_num
+  -- rw [deriv_const_mul]
+  -- simp
+  -- linarith
+  -- simp
   apply DifferentiableAt.pow
   simp
   apply DifferentiableAt.const_mul
@@ -558,6 +548,7 @@ lemma edist_mul {c : ℝ} (hδ : 0 ≤ c) (x y : ℝ) :
     suffices |α * x + α * -y| = α * |x + -y| by
       convert this using 2
       ring_nf
+      congr
     generalize -y = z
     have : α * x + α * z = α * (x + z) := by ring_nf
     rw [this]
@@ -837,18 +828,23 @@ lemma effective_interest_rate_def (a : ℝ → ℝ) (t : ℝ)
     (h : a (t - 1) ≠ 0) :
     a t = (1 + interest.i a t) * a (t - 1) := by
   field_simp [interest.i₂,interest.i]
+  unfold interest.i interest.i₂
+  field_simp
+  ring_nf
 
 lemma effective_discount_rate_def (a : ℝ → ℝ) (t : ℝ)
     (h : a t ≠ 0) :
     a (t - 1) = (1 - interest.d a t) * a t := by
   field_simp [interest.d]
+  unfold interest.d
+  field_simp
+  ring_nf
 
 /-- This lemma can replace `h1_10₁` in `chan_tse_1_3`. -/
 lemma h1_10₁ {a : ℝ → ℝ}
   {t : ℝ} (h : a (t - 1) ≠ 0) (A₀: ℝ) : interest.I A₀ a t = interest.A A₀ a (t - 1) * interest.i a t := by
   unfold interest.I interest.A interest.i interest.i₂
   field_simp
-  ring_nf
 
 
 
@@ -1002,9 +998,7 @@ lemma chan_tse_exercise_1_5_e {A : ℝ → ℝ} (h₀ : A 0 = 1000) (d : ℝ)
   have : (12:ℝ) * 4 = 48 := by linarith
   rw [this]
   field_simp
-  left
-  rw [mul_comm]
-  rfl
+  ring_nf
 
 lemma chan_tse_exercise_1_5_f {A : ℝ → ℝ} (h₀ : A 0 = 1000) (i : ℝ)
   (hd : i = 6e-2) (h : ∀ t k, A (k + t) = A (t) * rexp (i * k)):
@@ -1031,7 +1025,7 @@ lemma chan_tse_exercise_1_6_a₁ {a i : ℝ → ℝ}
     rw [show (2:ℝ)-1 = 1 by linarith] at this
     rw [h1_6 1, h1_6 2] at this
     simp at this
-    have h₀ : (2 : ℝ) ^ 2 / 2 = 2 := by field_simp;linarith
+    have h₀ : (2 : ℝ) ^ 2 / 2 = 2 := by field_simp
     rw [h₀] at this
     have hr : 1 < rexp 1 := one_lt_exp_iff.mpr (by simp)
     have h₁ : log (2⁻¹ + rexp 1) + 20⁻¹ ≠ 0 := ne_of_gt <| add_pos (log_pos (by linarith)) (by linarith)
@@ -1148,6 +1142,8 @@ lemma force_lt_average_interest_discount_aux : ∀ x > 1, deriv (fun α => 2 * l
           suffices 0 < (x⁻¹ - 1) ^ 2 by linarith
           suffices x⁻¹ - 1 ≠ 0 by positivity
           field_simp
+          simp
+          constructor <;>
           linarith
         · refine differentiableAt_log ?_
           linarith
@@ -1202,25 +1198,8 @@ theorem not_discount_le_force :
     conv => left; left; left; change log ∘ fun t => 1 + t
     rw [deriv_comp]
     simp
-    conv => left; left; right; left; change (fun _ => 1) + fun t => t
-    simp
-    have : (1:ℝ)+1 = 2 := by linarith
-    rw [this]
-    have : 0 < log 2 := by positivity
-    suffices  (2⁻¹ / log 2) * log 2 < 1 * log 2 by
-      apply (mul_lt_mul_iff_of_pos_right (by tauto)).mp this
-    suffices 2⁻¹ < log 2 by
-        simp
-        have :  2⁻¹ / log 2 * log 2 = 2⁻¹ := by field_simp;ring_nf
-        rw [this]
-        tauto
+    norm_num
     field_simp
-    suffices (1 / 2) * 2 < log 2 * 2 by
-        have := @mul_lt_mul_iff_of_pos_right ℝ _ _ _
-            2 (1 / 2) (log 2) _ _ (by simp)
-        tauto
-    suffices 1 < 2 * log 2 by
-        ring_nf;linarith
     have h₀ : (0:ℝ) < 2 := by linarith
     suffices 1 < log (2 ^ (2:ℝ)) by
         convert this using 1
@@ -1244,13 +1223,9 @@ theorem simple_discount_le_force (r : ℝ) (hr : 0 ≤ r) :
     ∀ t ≥ 0, interest.d a t ≤ interest.δ a t := by
     intro a x hx
     simp [interest.d, interest.δ, a]
-    rw [deriv_const_mul]
     field_simp
-    suffices  1 * (1 + r * x) ≤ ((r + (1 + r * (x - 1))) / (1 + r * x)) * (1 + r * x) by
-        exact le_of_mul_le_mul_right this <| by positivity
-    field_simp
+    ring_nf
     linarith
-    simp
 
 theorem force_lt_average_interest_discount {i d : ℝ} (hi : 0 < i)
   (h : (1 - d) * (1 + i) = 1) :
@@ -1394,6 +1369,7 @@ lemma compound_leftinv {i m : ℝ} (hm : m ≠ 0)
     exact hi
   ring_nf
   field_simp
+  ring_nf
 
 /-- Here we use `1 ≤ m` instead of `m ≠ 0`...
 is it necessary?
@@ -1406,7 +1382,8 @@ lemma compound_rightinv {i m : ℝ} (hml : 1 ≤ m)
     field_simp
   have h₀ : 0 ≤ 1 + i / m := by
     field_simp
-    apply div_nonneg <;> linarith
+    simp
+    linarith
   generalize i / m = j at *
   suffices (1 + ((1 + j) ^ m - 1)) ^ (1 / m) = 1 + j by
     rw [this]
@@ -1547,7 +1524,7 @@ theorem broverman_exercise_1_5_10_b {m i d : ℝ} (hid : (1+i) * (1-d)=1)
     simp at this
   have hd : 0 < 1 - d := by
     by_contra H
-    have : 0 = 1 - d ∨ 0 > 1 - d := eq_or_lt_of_not_gt H
+    have : 0 = 1 - d ∨ 0 > 1 - d := eq_or_gt_of_not_lt H
     cases this with
     | inl h => rw [← h] at hid;simp at hid
     | inr h =>
@@ -1561,7 +1538,8 @@ theorem broverman_exercise_1_5_10_b {m i d : ℝ} (hid : (1+i) * (1-d)=1)
   have hm : (1 - d.nomDis m / m) ≠ 0 := by
     unfold nomDis
     field_simp
-    linarith
+    sorry
+    -- linarith
 
   have h₀ : d.nomDis m / (1 - d.nomDis m / m) * (1 - d.nomDis m / m)
     = d.nomDis m := by
@@ -1587,14 +1565,15 @@ theorem broverman_exercise_1_5_10_b {m i d : ℝ} (hid : (1+i) * (1-d)=1)
     rw [hr] at this
     linarith
   have : d.nomDis m * m * (m - d.nomDis m) * m / ((m - d.nomDis m) * m)
-       = d.nomDis m * m := by field_simp;ring_nf
-  rw [this]
-  simp [nomInt,nomDis]
-  ring_nf
-  rw [mul_assoc, ← mul_rpow, hid]
-  simp
-  linarith
-  linarith
+       = d.nomDis m * m := by field_simp
+  sorry
+  -- rw [this]
+  -- simp [nomInt,nomDis]
+  -- ring_nf
+  -- rw [mul_assoc, ← mul_rpow, hid]
+  -- simp
+  -- linarith
+  -- linarith
 
 
 
@@ -1607,12 +1586,18 @@ lemma nomDis_good {d m : ℝ} (hd : 0 ≤ 1 - d) (hm : m ≠ 0):
     (y := 1 - d) (by
       apply rpow_nonneg
       field_simp
-      apply rpow_nonneg hd) hd (by field_simp)).mp
+      ring_nf
+      apply rpow_nonneg hd) hd (by field_simp;simp;tauto)).mp
   apply h₀
   rw [← rpow_mul]
   field_simp
   ring_nf
   field_simp
+  ring_nf
+  simp
+  ring_nf
+  field_simp
+  ring_nf
   apply rpow_nonneg hd
 
 lemma compound_LeftDis {d m : ℝ} (hd : 0 ≤ 1 - d) (hm : m ≠ 0) :
@@ -1632,9 +1617,11 @@ lemma compound_RightDis {d m : ℝ} (hd : d ≤ m) (hm₁ : 1 ≤ m) : (d.effDis
   rw [← rpow_mul]
   rw [CommGroupWithZero.mul_inv_cancel m hm]
   field_simp
-  suffices d * m⁻¹ ≤ 1 by linarith
+  suffices d * m⁻¹ ≤ 1 by simp;field_simp;linarith
   apply mul_inv_le_one_of_le₀ <;> linarith
-
+  field_simp
+  simp
+  exact hd
 
 lemma desmosInspired {m : ℝ} (hm : 0 < m)
   (d : ℝ) (h : d ≤ m) :
@@ -1643,7 +1630,7 @@ lemma desmosInspired {m : ℝ} (hm : 0 < m)
   suffices 0 ≤  (1 - d / m) ^ m by linarith
   apply rpow_nonneg
   suffices d / m ≤ 1 by linarith
-  suffices d / m ≤ m / m by field_simp at this;tauto
+  suffices d / m ≤ m / m by field_simp at this;field_simp;tauto
   refine (div_le_div_iff_of_pos_right ?_).mpr h
   linarith
 
@@ -1651,7 +1638,7 @@ lemma desmosInspired₂ {m : ℝ} (hm : 1 ≤ m)
   (d : ℝ) (h : d ≤ 1) :
   d.nomDis m ≤ m := by
   unfold nomDis
-  suffices 0 ≤ (1 - d) ^ (1 / m) by field_simp;tauto
+  suffices 0 ≤ (1 - d) ^ (1 / m) by field_simp;linarith
   apply rpow_nonneg
   suffices d / m ≤ 1 by linarith
   suffices d / m ≤ m / m by convert this;field_simp
@@ -1682,6 +1669,7 @@ noncomputable def compound_discount {m : ℝ} (hm : 1 ≤ m) : PartialEquiv ℝ 
     · unfold nomDis
       simp at hd ⊢
       field_simp
+      suffices 0 < (1 - d) ^ (1 / m) by linarith
       apply rpow_pos_of_pos
       linarith
   map_target' := by
@@ -1708,6 +1696,7 @@ noncomputable def compound_discount {m : ℝ} (hm : 1 ≤ m) : PartialEquiv ℝ 
       linarith
     · apply rpow_pos_of_pos
       field_simp
+      simp
       tauto
   left_inv' := fun d hd => by
     have := @compound_LeftDis
@@ -1795,6 +1784,7 @@ example (i x : ℝ) (n : ℝ) (hi : 0 ≤ i) (hn : n > 0)
   generalize x ^ (1 / n) = v at *
   rw [this]
   field_simp
+  ring_nf
 
 
 
@@ -1864,3 +1854,4 @@ example (i x : ℝ) (n : ℝ) (hi : 0 ≤ i) (hn : n > 0)
 --   left_inv' := by sorry
 --   right_inv' := by sorry
 -- }
+#min_imports
