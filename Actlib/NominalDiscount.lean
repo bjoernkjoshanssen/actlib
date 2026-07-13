@@ -9,7 +9,7 @@ public import Actlib.NominalEffective
 /-!
 # Chan & Tse Exercise 1.1
 -/
-
+@[expose] public section
 #eval 20000 * (1.08)^4
 
 #eval (20000
@@ -32,13 +32,14 @@ lemma neg_log {w : ℝ} (h₂ : w ≠ 0) (this : 1 - w > 0) : w < -log (1 - w) :
   rw [h₁]
   apply exp_lt_exp.mp
   rw [exp_log (by linarith), add_comm]
-  exact add_one_lt_exp <| by contrapose! h₂; linarith
+  exact add_one_lt_exp <| by simp only [ne_eq, neg_eq_zero];tauto
 
 
 /-- Here we start to work with `-1 < u ≠ 0`
 instead of `0 < u`. -/
 lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx : 1 < x) :
-  0 < rexp (x * log (1 + u / x)) * (log (1 + u / x) + x * ((1 + u / x)⁻¹ * (-u / x ^ 2))) := mul_pos (exp_pos _) <| by
+    0 < rexp (x * log (1 + u / x)) * (log (1 + u / x) + x * ((1 + u / x)⁻¹ * (-u / x ^ 2))) :=
+    mul_pos (exp_pos _) <| by
   suffices x * ((1 + u / x)⁻¹ * (u / x ^ 2)) < log (1 + u / x) by
     simp at this ⊢
     ring_nf at this ⊢
@@ -54,8 +55,8 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
     field_simp
     linarith
   have h₀ : 1 + u / x ≠ 0 := by
-    contrapose! h₃
-    linarith
+    rw [add_comm]
+    exact h₃
   have h₂ : u / (x + u) ≠ 0 := by
     apply div_ne_zero hu₀ <| ne_of_gt hxu
   have hpaper:  (1 + u / x)⁻¹ * (u / x) = u / (x + u) := by
@@ -135,7 +136,8 @@ lemma exercise_1_2_chan_tse_pos {u x : ℝ} (hu : -1 < u) (hu₀ : u ≠ 0) (hx 
 --        = deriv (fun t => rexp (t * log (1 + u / t))) x :=
 --        Filter.EventuallyEq.deriv_eq <| eventually_eventuallyEq_nhds.mp <|
 --         eventually_mem_nhds_iff.mpr <| mem_interior_iff_mem_nhds.mp <| by
---         suffices Set.Ioi 1 ⊆ interior {x | (fun x ↦ (fun t ↦ (1 + u / t) ^ t) x = (fun t ↦ rexp (t * log (1 + u / t))) x) x} by
+--         suffices Set.Ioi 1 ⊆ interior {x | (fun x ↦ (fun t ↦ (1 + u / t) ^ t) x
+--= (fun t ↦ rexp (t * log (1 + u / t))) x) x} by
 --           apply this
 --           simp
 --           exact hx
@@ -341,9 +343,9 @@ example (a b : ℝ) : 27 * a * 2
   ring_nf
   suffices  (a - 1) * 27 < a ^ 2 * (9 + a) by linarith
   by_cases H : a = 4
-  subst H
-  linarith
-  sorry
+  · subst H
+    linarith
+  · sorry
 
 
 lemma i₂ann_def {u v : ℝ} (h : u < v) (hu : 0 < a u) (hv : 0 ≤ a v) :
@@ -369,10 +371,10 @@ noncomputable def v : ℝ → ℝ := fun t => 1 / a t
 i(1) fits with back-of-the-book solution.
 (Unfortunately `v` and `i` are denoted `v a` and `i a` since they depend on `a`.)
 -/
-lemma chan_tse_exe_1_21 (h : ∀ t, v a t = 20 / (20 + t)) {t : ℝ} (ht : 0 ≠ 20 + t):
+lemma chan_tse_exe_1_21 (h : ∀ t, v a t = 20 / (20 + t)) {t : ℝ} (ht : 0 ≠ 20 + t) :
     i a (t+1) = 1 / (20 + t) := by
-  simp [i, i₂]
-  simp [v] at h
+  simp only [i, i₂, add_sub_cancel_right, one_div]
+  simp only [v, one_div] at h
   have ha (t) : a t = (20 + t) / 20 := by
     have ht := h t
     rw [← inv_inv (a t)]
@@ -389,14 +391,13 @@ lemma chan_tse_exe_1_33 (h : ∀ t, a t = 1 / (1 - 0.01 * t)) :
   rw [h]
   field_simp
 
-lemma chan_tse_exe_1_34 (h : ∀ t, A A₀ a t = t^2 + 2*t + 4) :
+lemma chan_tse_exe_1_34 (h : ∀ t, A A₀ a t = t ^ 2 + 2 * t + 4) :
     δ a 5 = 4 / 13 := by
   unfold δ
   unfold A at h
   have hA₀ : A₀ ≠ 0 := by
     intro hc
     subst hc
-    simp at h
     specialize h 0
     simp at h
   have h₅ : a 5 ≠ 0 := by
@@ -421,29 +422,21 @@ lemma chan_tse_exe_1_34 (h : ∀ t, A A₀ a t = t^2 + 2*t + 4) :
     field_simp
   rw [this]
   rw [deriv_const_mul]
-  simp
-  rw [mul_assoc]
-  congr
-  conv =>
-    left
-    left
-    change (fun y => y ^ 2) + fun y => 2 * y
-  rw [deriv_add]
-  simp
-  norm_num
-  -- rw [deriv_const_mul]
-  -- simp
-  -- linarith
-  -- simp
-  apply DifferentiableAt.pow
-  simp
-  apply DifferentiableAt.const_mul
-  simp
+  · simp only [deriv_add_const']
+    rw [mul_assoc]
+    congr
+    conv =>
+      left
+      left
+      change (fun y => y ^ 2) + fun y => 2 * y
+    rw [deriv_add]
+    · norm_num
+    · apply differentiableAt_fun_id.pow
+    · apply differentiableAt_fun_id.const_mul
   apply DifferentiableAt.add
-  apply DifferentiableAt.add
-  apply DifferentiableAt.pow
-  simp
-  apply DifferentiableAt.const_mul (by simp)
+  · apply DifferentiableAt.add
+    · apply differentiableAt_fun_id.pow
+    · apply differentiableAt_fun_id.const_mul
   simp
 
 -- example (x y c d : ℝ) (h₀ : x^2+y-3=0) (h₁: x+(1/2)*y^2-3/2=0) : x = c ∧ y = d := by
@@ -635,10 +628,8 @@ lemma general_force (a : ℝ → ℝ)
             generalize δ a = f at *
             have h₀ : Set.Ici (0:ℝ) ∈ nhds t := by
               refine Ici_mem_nhds ?_
-              have := ht.1
-              by_contra H₀
-              apply H
-              linarith
+              apply lt_of_le_of_ne ht.1
+              exact Ne.symm H
             generalize Set.Ici (0:ℝ) = A at *
             unfold ContinuousWithinAt at hcontδ
             unfold ContinuousAt
@@ -658,9 +649,8 @@ lemma general_force (a : ℝ → ℝ)
             · apply ContinuousOn.mono hcontδ
               intro;simp;intro;linarith
             simp
-            by_contra H
-            apply H₀
-            linarith
+            apply lt_of_le_of_ne ht.1
+            exact Ne.symm H₀
           generalize δ a = f at *
           have : (fun t ↦ rexp (∫ (s : ℝ) in 0..t, f s))
             = rexp ∘ (fun t ↦ (∫ (s : ℝ) in 0..t, f s)) := by ext;simp
@@ -1402,9 +1392,20 @@ open Real
 lemma pow_pow {x y z : ℝ} (h : x ^ y < z ^ y)
     (hy : 0 < y) (hz : 1 < z) : x < z := by
   -- Proof by DeepSeek
-  by_contra! H  -- H : z ≤ x
-  have : z ^ y ≤ x ^ y := Real.rpow_le_rpow (by linarith) H hy.le
-  linarith
+  by_cases H : 0 ≤ x
+  · rw [Real.rpow_lt_rpow_iff] at h
+    · exact h
+    · exact H
+    · linarith
+    · exact hy
+  · simp only [not_le] at H
+    linarith
+  -- contrapositive proof:
+  -- contrapose! h
+  -- apply Real.rpow_le_rpow
+  -- · linarith
+  -- · exact h
+  -- · linarith
 
 
 /-- Conversion between nominal and effective interest rate
@@ -1523,9 +1524,10 @@ theorem broverman_exercise_1_5_10_b {m i d : ℝ} (hid : (1+i) * (1-d)=1)
         _ = 1 := hid
     simp at this
   have hd : 0 < 1 - d := by
-    by_contra H
-    have : 0 = 1 - d ∨ 0 > 1 - d := eq_or_gt_of_not_lt H
-    cases this with
+    cases Std.lt_trichotomy 0 (1 - d) with
+    | inl h => exact h
+    | inr h =>
+      cases h with
     | inl h => rw [← h] at hid;simp at hid
     | inr h =>
         cases Or.symm (Decidable.lt_or_eq_of_le hi) with
@@ -1535,6 +1537,10 @@ theorem broverman_exercise_1_5_10_b {m i d : ℝ} (hid : (1+i) * (1-d)=1)
             have : (1 + i) * (1 - d) < 0 := mul_neg_of_pos_of_neg h₀ h
             rw [hid] at this
             linarith
+    -- by_contra proof:
+    -- by_contra H
+    -- have : 0 = 1 - d ∨ 0 > 1 - d := eq_or_gt_of_not_lt H
+    -- cases this with ...
   have hm : (1 - d.nomDis m / m) ≠ 0 := by
     unfold nomDis
     field_simp
