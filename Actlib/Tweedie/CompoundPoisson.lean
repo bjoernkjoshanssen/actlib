@@ -224,7 +224,7 @@ lemma tweedie_zero_sanity_check₂ (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
     let hμ₀ := le_of_lt hμ
     let hφ₀ := le_of_lt hφ
     tweedieConstruction μ hμ₀ hφ₀ hp₂ {0} =
-    tweedieMeasure       μ hφ₀ hp₁ hp₂ {0} := by
+    tweedieMeasure       μ hφ₀ hp₁ (by linarith) {0} := by
   intro hμ₀ hφ₀
   rw [tweedie_zero_sanity_check μ hμ hφ hp₁ hp₂]
   simp [tweedieMeasure]
@@ -342,21 +342,21 @@ lemma tweedie_density_series_ae (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ} (hφ : 0 
     rw [MeasureTheory.ae_iff]; simp
   filter_upwards [twG_ae_summable μ hp₁ hp₂ hμ hφ, hzne] with z hzsum hzne0
   have hpdf' : tweediePDF' μ hp₁ (le_of_lt hp₂) (le_of_lt hφ) z
-      = ENNReal.ofReal (tweediePDF μ φ p z) := by
+      = ENNReal.ofReal (tweediePDF p μ φ z) := by
     unfold tweediePDF'
     exact (ENNReal.ofReal_eq_coe_nnreal
       (tweediePDF_nonneg (le_of_lt hφ) hp₁ (le_of_lt hp₂))).symm
   rw [hpdf']
   rcases lt_or_gt_of_ne hzne0 with hzlt | hzgt
   · -- z < 0 : both sides vanish
-    have h1 : tweediePDF μ φ p z = 0 := by
+    have h1 : tweediePDF p μ φ z = 0 := by
       simp only [tweediePDF]
       rw [Set.indicator_of_notMem (by simp only [Set.mem_setOf_eq]; linarith)]
     rw [h1, ENNReal.ofReal_zero, ENNReal.tsum_eq_zero]
     intro n
     rw [gammaPDF_of_neg hzlt, mul_zero]
   · -- z > 0 : use the pointwise Tweedie series
-    have hpw : tweediePDF μ φ p z = ∑' j : ℕ, twG μ φ p j z := by
+    have hpw : tweediePDF p μ φ z = ∑' j : ℕ, twG μ φ p j z := by
       simp only [tweediePDF]
       rw [Set.indicator_of_mem (by simp only [Set.mem_setOf_eq]; exact hzgt)]
       exact tw_pointwise μ φ p z
@@ -378,7 +378,7 @@ theorem tweedie_eq (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
     let hμ₀ := le_of_lt hμ
     let hφ₀ := le_of_lt hφ
     tweedieConstruction μ hμ₀ hφ₀ hp₂ =
-    tweedieMeasure       μ hφ₀ hp₁ hp₂ := by
+    tweedieMeasure       μ hφ₀ hp₁ (by linarith) := by
   intro hμ₀ hφ₀
   have hα : (0 : ℝ) < (2 - p) / (p - 1) := div_pos (by linarith) (by linarith)
   have hγ : (0 : ℝ) < μ ^ (1 - p) / (φ * (p - 1)) :=
