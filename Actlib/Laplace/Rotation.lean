@@ -148,7 +148,8 @@ theorem norm_rotDeriv_le {a t psi v k s : ℝ} (ht : 0 < t) (hs : 0 < s)
   have hts : 0 < t * s := by positivity
   have hden : t * s ≤ ‖(t : ℂ) - (v : ℂ) * Complex.exp ((psi : ℂ) * Complex.I)‖ :=
     le_trans (by nlinarith) (mul_sin_le_norm_sub_mul_exp t psi v)
-  have hden' : 0 < ‖(t : ℂ) - (v : ℂ) * Complex.exp ((psi : ℂ) * Complex.I)‖ := lt_of_lt_of_le hts hden
+  have hden' : 0 < ‖(t : ℂ) - (v : ℂ) *
+    Complex.exp ((psi : ℂ) * Complex.I)‖ := lt_of_lt_of_le hts hden
   have hva : (0 : ℝ) ≤ v ^ a := Real.rpow_nonneg hv.le a
   have hEnorm : ‖E a psi v‖ ≤ Real.exp (-(k * v ^ a)) := by
     rw [norm_E, Real.exp_le_exp]

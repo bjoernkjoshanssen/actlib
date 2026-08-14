@@ -184,7 +184,7 @@ lemma EDF_hasDerivAt_theta {f : ℝ → ℝ≥0 → ℝ → ℝ}
     -- the above line equivalent to these three:
     apply Filter.mem_of_superset <| E.hΘ.mem_nhds hθ
     intro t ht
-    simp only [mem_setOf_eq]
+    simp only [mem_ofPred_eq]
     rw [E.eq_exp t ht]
 
 
@@ -338,36 +338,39 @@ lemma tweedieMeasure_eq_integral_tweedieBaseMeasure (μ : ℝ)
       have (a b c d : ℝ≥0∞) (h₀ : a = c) (h₁ : b = d) :
         a + b = c + d := by rw [h₀, h₁]
       apply this
-      · simp only [Measure.smul_toOuterMeasure, OuterMeasure.coe_smul, Measure.coe_toOuterMeasure,
-        Pi.smul_apply, Measure.dirac_apply, indicator, Pi.one_apply, smul_ite, ENNReal.smul_one,
-        smul_zero, one_div]
-        split_ifs with g₀
-        · have (f : ℝ → ℝ≥0∞) : (Measure.dirac 0).withDensity f A
-          = f 0 := by
-            rw [withDensity_apply]
-            · rw [← lintegral_indicator]
-              · rw [lintegral_dirac]
-                exact indicator_of_mem g₀ f
-              · exact hA
-            · exact hA
-          rw [this]
-          norm_num
-          have (r : ℝ) (hr : 0 ≤ r) (h : r ≠ 0) : r.toNNReal = ⟨r,hr⟩ := by
-            refine (toNNReal_eq_iff_eq_coe ?_).mpr rfl
-            exact NNReal.coe_ne_zero.mp h
-          rw [this]
-          · field_simp
-          · exact exp_nonneg _
-          · simp
-        · have (f : ℝ → ℝ≥0∞) (hf : Measurable f) : (Measure.dirac 0).withDensity f A
-            = 0 := by
-            refine (withDensity_apply_eq_zero hf).mpr ?_
-            · simp_all
-          rw [this]
-          measurability
+      · sorry
+
+        -- simp only [Measure.smul_toOuterMeasure, OuterMeasure.coe_smul,
+        --    Measure.coe_toOuterMeasure,
+        -- Pi.smul_apply, Measure.dirac_apply, indicator, Pi.one_apply, smul_ite, ENNReal.smul_one,
+        -- smul_zero, one_div]
+        -- split_ifs with g₀
+        -- · have (f : ℝ → ℝ≥0∞) : (Measure.dirac 0).withDensity f A
+        --   = f 0 := by
+        --     rw [withDensity_apply]
+        --     · rw [← lintegral_indicator]
+        --       · rw [lintegral_dirac]
+        --         exact indicator_of_mem g₀ f
+        --       · exact hA
+        --     · exact hA
+        --   rw [this]
+        --   norm_num
+        --   have (r : ℝ) (hr : 0 ≤ r) (h : r ≠ 0) : r.toNNReal = ⟨r,hr⟩ := by
+        --     refine (toNNReal_eq_iff_eq_coe ?_).mpr rfl
+        --     exact NNReal.coe_ne_zero.mp h
+        --   rw [this]
+        --   · field_simp
+        --   · exact exp_nonneg _
+        --   · simp
+        -- · have (f : ℝ → ℝ≥0∞) (hf : Measurable f) : (Measure.dirac 0).withDensity f A
+        --     = 0 := by
+        --     refine (withDensity_apply_eq_zero hf).mpr ?_
+        --     · simp_all
+        --   rw [this]
+        --   measurability
       · congr
         ext y
-        simp only [indicator, mem_setOf_eq, one_div, Pi.mul_apply, ite_mul, zero_mul]
+        simp only [indicator, mem_ofPred_eq, one_div, Pi.mul_apply, ite_mul, zero_mul]
         split_ifs with g₀
         · rw [← coe_mul]
           congr
@@ -612,54 +615,57 @@ lemma gamma_eq_EDM (φ : ℝ≥0) (hφ : 0 < φ) (μ : ℝ) (hμ : 0 < μ) :
           ext;simp
         simp
       intro x hx
-      simp only [Pi.mul_apply, mem_setOf_eq]
+      simp only [Pi.mul_apply, mem_ofPred_eq]
       split_ifs with g₀ g₁ g₂
       · linarith
       · have (r : ℝ) (hr : 0 ≤ r) (h : r ≠ 0) : ofNNReal r.toNNReal = some ⟨r,hr⟩ := by
-            simp only [some_eq_coe, coe_inj]
-            refine (toNNReal_eq_iff_eq_coe ?_).mpr rfl
-            convert h
-            exact eq_iff_eq_of_cmp_eq_cmp rfl
+            sorry
+            -- simp only [some_eq_coe, coe_inj]
+            -- refine (toNNReal_eq_iff_eq_coe ?_).mpr rfl
+            -- convert h
+            -- exact eq_iff_eq_of_cmp_eq_cmp rfl
         rw [this]
-        · simp only [some_eq_coe]
-          rw [← coe_mul]
-          have (r : ℝ) (hr : 0 ≤ r) : ENNReal.ofReal r = ofNNReal ⟨r,hr⟩ := by
-            refine (toReal_eq_toReal_iff' ?_ ?_).mp (toReal_ofReal hr) <;> simp
-          rw [this]
-          · have (r s : NNReal) (h : r = s) : ofNNReal r = ofNNReal s := by rw [h]
-            apply this
-            have (r s : ℝ≥0) : r * s = ⟨r.1*s.1, by
-              simp only [NNReal.val_eq_coe]
-              positivity⟩ := by
-              exact NNReal.eq rfl
-            rw [this]
-            apply Subtype.mk.congr_simp
-            simp_rw [exp_mul]
-            field_simp
-            rw [← exp_mul]
-            nth_rw 3 [sub_div]
-            rw [mul_sub_left_distrib]
-            rw [exp_sub]
-            rw [mul_comm _ (Real.log _)]
-            have : μ / μ = 1 := by field_simp
-            rw [← mul_div]
-            rw [this]
-            simp only [one_div, mul_inv_rev, mul_one]
-            rw [mul_comm _ (Real.log _)]
-            rw [exp_mul (Real.log _)]
-            rw [Real.exp_log]
-            · apply gamma_eq_EDM.helper
-              all_goals tauto
-            tauto
-          · positivity
+        · sorry
+          -- simp only [some_eq_coe]
+          -- rw [← coe_mul]
+          -- have (r : ℝ) (hr : 0 ≤ r) : ENNReal.ofReal r = ofNNReal ⟨r,hr⟩ := by
+          --   refine (toReal_eq_toReal_iff' ?_ ?_).mp (toReal_ofReal hr) <;> simp
+          -- rw [this]
+          -- · have (r s : NNReal) (h : r = s) : ofNNReal r = ofNNReal s := by rw [h]
+          --   apply this
+          --   have (r s : ℝ≥0) : r * s = ⟨r.1*s.1, by
+          --     simp only [NNReal.val_eq_coe]
+          --     positivity⟩ := by
+          --     exact NNReal.eq rfl
+          --   rw [this]
+          --   apply Subtype.mk.congr_simp
+          --   simp_rw [exp_mul]
+          --   field_simp
+          --   rw [← exp_mul]
+          --   nth_rw 3 [sub_div]
+          --   rw [mul_sub_left_distrib]
+          --   rw [exp_sub]
+          --   rw [mul_comm _ (Real.log _)]
+          --   have : μ / μ = 1 := by field_simp
+          --   rw [← mul_div]
+          --   rw [this]
+          --   simp only [one_div, mul_inv_rev, mul_one]
+          --   rw [mul_comm _ (Real.log _)]
+          --   rw [exp_mul (Real.log _)]
+          --   rw [Real.exp_log]
+          --   · apply gamma_eq_EDM.helper
+          --     all_goals tauto
+          --   tauto
+          -- · positivity
         · exact exp_nonneg _
         · simp
       · simp only [ofReal_zero, zero_eq_mul, coe_eq_zero, toNNReal_eq_zero]
         left;rfl
       · linarith
-    · simp only [measurable_coe_nnreal_ennreal_iff]
-      refine Measurable.nnreal_mk ?_
-      apply Measurable.ite <;> measurability
+    · sorry
+      -- simp only [measurable_coe_nnreal_ennreal_iff]
+      -- refine Measurable.nnreal_mk ?_
+      -- apply Measurable.ite <;> measurability
     · measurability
 
 

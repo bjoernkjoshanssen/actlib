@@ -1,5 +1,8 @@
 import Mathlib
 import Actlib.Laplace.MainTheorem
+import Actlib.Tweedie.ExponentialDispersion
+import Mathlib.Probability.Distributions.Gamma
+
 open scoped BigOperators
 open scoped Real
 open scoped Nat
@@ -10,17 +13,31 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 open Real MeasureTheory Set Filter Topology
-noncomputable def wright_generalized_bessel (Λ μ : ℝ) (z : ℝ) :=
-    ∑' k : ℕ, z ^ k / (Nat.factorial k * Gamma (Λ * k + μ))
-/-- Tweedie PDF proposed for `2 < p < 3`. -/
-noncomputable def tweediePDF₂₃ (p μ phi : ℝ) (y : ℝ) : ℝ :=
-    let α := (2 - p) / (1 - p)
-    Set.indicator {y : ℝ | 0 < y} (
-    fun y => 1 / y * wright_generalized_bessel (-α) 0 (
-        - y^(-α) / ((p - 1) * phi ^ (1 / (p - 1)))
-    ) * exp (
-        1 / phi * (y * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p) )
-    )) y
+
+noncomputable section
+
+-- def wright_generalized_bessel (Λ μ : ℝ) (z : ℝ) :=
+--     ∑' k : ℕ, z ^ k / (Nat.factorial k * Gamma (Λ * k + μ))
+
+local notation "𝓦" => wright_generalized_bessel
+
+/- Tweedie PDF for `2 < p < 3`, expressed using Wright's generalized Bessel function. -/
+-- def tweediePDF₂₃ (p μ phi : ℝ) (y : ℝ) : ℝ :=
+--     let α := (2 - p) / (1 - p)
+--     Set.indicator {y : ℝ | 0 < y} (
+--     fun y => 1 / y * 𝓦 (-α) 0 (
+--         - y^(-α) / ((p - 1) * phi ^ (1 / (p - 1)))
+--     ) * exp (
+--         1 / phi * (y * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p) )
+--     )) y
+
+def standardTweediePDF₂₃ := tweediePDF₂₃ (5 / 2) 1 1
+
+example : standardTweediePDF₂₃ 1 = 𝓦 (-1 / 3) 0 (-2 / 3) * rexp (4 / 3) := by
+  unfold standardTweediePDF₂₃ tweediePDF₂₃ --wright_generalized_bessel
+  simp [Set.indicator]
+  ring_nf
+
 
 /-- The coefficient required for normalization by the positive-stable
 Laplace-transform identity, where `α = (p - 2) / (p - 1)`. -/
@@ -199,8 +216,15 @@ lemma integral_wright_positive_stable (a c t : ℝ)
   rw [← Real.rpow_mul (le_of_lt hc), one_div_mul_cancel ha0.ne', Real.rpow_one]
   ring
 
+
+lemma for_aristotle (p μ phi : ℝ)
+    (hp₂ : 2 < p) (hphi : 0 < phi) (hμ : 0 < μ) :
+    ∫ y : ℝ, y * tweediePDF₂₃_corrected p μ phi y = μ := by
+  sorry
+
+/-- Surprisingly, `p < 3` is not needed here. -/
 lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
-    (hp₂ : 2 < p) (hp₃ : p < 3) (hphi : 0 < phi) (hμ : 0 < μ) :
+    (hp₂ : 2 < p) (hphi : 0 < phi) (hμ : 0 < μ) :
     ∫ y : ℝ, tweediePDF₂₃_corrected p μ phi y = 1 := by
   have hp1_neg : 1 - p < 0 := by linarith
   have hp2_neg : 2 - p < 0 := by linarith
@@ -286,3 +310,181 @@ lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
   rw [htconst_eq]
   have : tweedieTiltConstant p μ phi + -tweedieTiltConstant p μ phi = 0 := by ring
   rw [this, Real.exp_zero]
+
+
+/-- Whereas `tweediePDF₂₃_corrected` for `p=3` is the inverse Gaussian,
+for `p=2` (and `p=1`) [and `p=0`] it collapses to zero rather than the gamma distribution
+(and the Poisson distribution) [and the normal distribution]. -/
+lemma tweedie_degenerate₂ (μ phi y : ℝ) :
+    tweediePDF₂₃_corrected 2 μ phi y = 0 := by
+  unfold tweediePDF₂₃_corrected wright_generalized_bessel
+  simp
+lemma tweedie_degenerate₁ (μ phi y : ℝ) :
+    tweediePDF₂₃_corrected 1 μ phi y = 0 := by
+  unfold tweediePDF₂₃_corrected wright_generalized_bessel
+  simp
+lemma tweedie_degenerate₀ (μ phi y : ℝ) :
+    tweediePDF₂₃_corrected 0 μ phi y = 0 := by
+  unfold tweediePDF₂₃_corrected wright_generalized_bessel
+    tweedieNormalizedScale
+  simp only [one_div, zero_sub, neg_div_neg_eq, div_one, rpow_ofNat, even_two, Even.neg_pow,
+    one_pow, ne_eq, one_ne_zero, not_false_eq_true, div_neg_self, neg_mul, inv_neg, mul_inv_rev,
+    neg_neg, sub_zero, rpow_neg_ofNat, Int.reduceNeg, zpow_neg, zpow_ofNat, add_zero, rpow_one,
+    indicator_apply_eq_zero, mem_ofPred_eq, mul_eq_zero, inv_eq_zero, exp_ne_zero, or_false]
+  intro h
+  right
+  have (k : ℕ) : Gamma (-(2 * (k : ℝ))) = 0 := by
+    apply (Gamma_eq_zero_iff (-(2 * ↑k))).mpr
+    use 2 * k
+    simp
+  simp_rw [this]
+  simp
+
+
+namespace WrightSpecial
+
+open Real
+
+/-- `Γ(1/2 - n) = (-4)^n · n! · √π / (2n)!` for every natural number `n`. -/
+lemma gamma_half_sub_nat (n : ℕ) :
+    Real.Gamma (1 / 2 - (n : ℝ))
+      = (-4) ^ n * (n).factorial * Real.sqrt Real.pi / (2 * n).factorial := by
+  induction n with
+  | zero =>
+    rw [show (1 / 2 - ((0 : ℕ) : ℝ)) = 1 / 2 by norm_num, Real.Gamma_one_half_eq]
+    norm_num
+  | succ n ih =>
+    have h0 : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+    have hs : (1 / 2 - ((n : ℝ) + 1)) ≠ 0 := by intro h; linarith
+    have key : Real.Gamma ((1 / 2 - ((n : ℝ) + 1)) + 1)
+        = (1 / 2 - ((n : ℝ) + 1)) * Real.Gamma (1 / 2 - ((n : ℝ) + 1)) := Real.Gamma_add_one hs
+    rw [show (1 / 2 - ((n : ℝ) + 1)) + 1 = 1 / 2 - (n : ℝ) by ring] at key
+    have h2 : Real.Gamma (1 / 2 - ((n : ℝ) + 1))
+        = Real.Gamma (1 / 2 - (n : ℝ)) / (1 / 2 - ((n : ℝ) + 1)) := by
+      rw [key, mul_div_cancel_left₀ _ hs]
+    have hfac : ((2 * (n + 1)).factorial : ℝ)
+        = (2 * (n : ℝ) + 2) * (2 * (n : ℝ) + 1) * (2 * n).factorial := by
+      rw [show 2 * (n + 1) = (2 * n + 1) + 1 by ring, Nat.factorial_succ, Nat.factorial_succ]
+      push_cast; ring
+    have hfac2 : (((n + 1)).factorial : ℝ) = ((n : ℝ) + 1) * (n).factorial := by
+      rw [Nat.factorial_succ]; push_cast; ring
+    have hpos : ((2 * n).factorial : ℝ) ≠ 0 := by positivity
+    push_cast [hfac, hfac2]
+    rw [h2, ih, div_div, div_eq_div_iff (mul_ne_zero hpos hs) (by positivity)]
+    ring
+
+/-- The even-index terms of the series vanish: `Γ` has poles at the non-positive integers,
+which Mathlib's `Real.Gamma` represents by the value `0`. -/
+lemma even_term_eq_zero (z : ℝ) (m : ℕ) :
+    z ^ (2 * m) / ((2 * m).factorial * Real.Gamma (-(2⁻¹ * ((2 * m : ℕ) : ℝ)))) = 0 := by
+  have h : (-(2⁻¹ * ((2 * m : ℕ) : ℝ))) = -(m : ℝ) := by push_cast; ring
+  rw [h, Real.Gamma_neg_nat_eq_zero, mul_zero, div_zero]
+
+/-- Closed form for the odd-index terms of the series. -/
+lemma odd_term_eq (z : ℝ) (m : ℕ) :
+    z ^ (2 * m + 1) / ((2 * m + 1).factorial * Real.Gamma (-(2⁻¹ * ((2 * m + 1 : ℕ) : ℝ))))
+      = (-z / (2 * Real.sqrt Real.pi)) * ((-z ^ 2 / 4) ^ m / (m).factorial) := by
+  have harg : (-(2⁻¹ * ((2 * m + 1 : ℕ) : ℝ))) = 1 / 2 - (((m + 1 : ℕ)) : ℝ) := by
+    push_cast; ring
+  rw [harg, gamma_half_sub_nat (m + 1)]
+  have hpi : Real.sqrt Real.pi ≠ 0 := by
+    simp [Real.sqrt_eq_zero', Real.pi_pos]
+  have h4 : ((-4 : ℝ)) ^ m ≠ 0 := by positivity
+  have hm : ((m).factorial : ℝ) ≠ 0 := by positivity
+  have hfacA : ((2 * (m + 1)).factorial : ℝ)
+      = (2 * (m : ℝ) + 2) * (2 * (m : ℝ) + 1) * (2 * m).factorial := by
+    rw [show 2 * (m + 1) = (2 * m + 1) + 1 by ring, Nat.factorial_succ, Nat.factorial_succ]
+    push_cast; ring
+  have hfacB : (((2 * m + 1)).factorial : ℝ) = (2 * (m : ℝ) + 1) * (2 * m).factorial := by
+    rw [Nat.factorial_succ]; push_cast; ring
+  have hfacC : (((m + 1)).factorial : ℝ) = ((m : ℝ) + 1) * (m).factorial := by
+    rw [Nat.factorial_succ]; push_cast; ring
+  have hpow : ((-z ^ 2 / 4 : ℝ)) ^ m = (z ^ 2) ^ m / (-4) ^ m := by
+    rw [← div_pow]; ring_nf
+  have hz : z ^ (2 * m + 1) = (z ^ 2) ^ m * z := by rw [← pow_mul]; ring
+  have h2m : ((2 * m).factorial : ℝ) ≠ 0 := by positivity
+  rw [hfacA, hfacB, hfacC, hpow, hz]
+  field_simp
+  ring
+
+/-- The Wright function `W(-1/2, 0; z) = ∑ₖ zᵏ / (k! · Γ(-k/2))` equals
+`-z/(2√π) · exp(-z²/4)`.  This holds for every real `z`; no positivity assumption is needed. -/
+theorem wright_neg_half_zero (z : ℝ) :
+    ∑' (k : ℕ), z ^ k / ((k).factorial * Real.Gamma (-(2⁻¹ * (k : ℝ))))
+      = -z / (2 * Real.sqrt Real.pi) * Real.exp (-z ^ 2 / 4) := by
+  set f : ℕ → ℝ := fun k => z ^ k / ((k).factorial * Real.Gamma (-(2⁻¹ * (k : ℝ)))) with hf
+  have hEven : ∀ m : ℕ, f (2 * m) = 0 := fun m => even_term_eq_zero z m
+  have hOdd : ∀ m : ℕ, f (2 * m + 1)
+      = (-z / (2 * Real.sqrt Real.pi)) * ((-z ^ 2 / 4) ^ m / (m).factorial) :=
+    fun m => odd_term_eq z m
+  have hse : Summable (fun m : ℕ => f (2 * m)) := by
+    simp only [hEven]
+    exact summable_zero
+  have hso : Summable (fun m : ℕ => f (2 * m + 1)) := by
+    simp only [hOdd]
+    exact (Real.summable_pow_div_factorial (-z ^ 2 / 4)).mul_left _
+  have hsplit := tsum_even_add_odd hse hso
+  rw [← hsplit]
+  have h1 : ∑' (m : ℕ), f (2 * m) = 0 := by simp [hEven]
+  have h2 : ∑' (m : ℕ), f (2 * m + 1)
+      = (-z / (2 * Real.sqrt Real.pi)) * Real.exp (-z ^ 2 / 4) := by
+    simp only [hOdd]
+    rw [tsum_mul_left, Real.exp_eq_exp_ℝ, NormedSpace.exp_eq_tsum_div]
+  rw [h1, h2, zero_add]
+
+/-- The statement in the notation of the original question:
+`∑' (k : ℕ), z ^ k / (↑k ! * Gamma (-(2⁻¹ * ↑k))) = -z / (2 * √π) * rexp (-z ^ 2 / 4)`. -/
+theorem wright_neg_half_zero' (z : ℝ) :
+    ∑' (k : ℕ), z ^ k / (k ! * Real.Gamma (-(2⁻¹ * (k : ℝ))))
+      = -z / (2 * √π) * rexp (-z ^ 2 / 4) :=
+  wright_neg_half_zero z
+
+end WrightSpecial
+
+lemma h𝓦 : 𝓦 (-(1 / 2)) 0 = fun z => -z / (2 * √π) * rexp (-z ^ 2 / 4) := by
+  unfold wright_generalized_bessel
+  ext z
+  convert WrightSpecial.wright_neg_half_zero' z
+  simp
+
+/--
+August 13, 2026.
+-/
+lemma tweedie₃_eq_inverseGaussian (y : ℝ) (hy : 0 < y) :
+    tweediePDF₂₃_corrected 3 1 1 y = (inverseGaussianPDF 1 1 y).toReal := by
+        unfold tweediePDF₂₃_corrected inverseGaussianPDF tweedieNormalizedScale
+        simp [Set.indicator]
+        ring_nf
+        rw [if_pos hy]
+        field_simp
+        rw [max_eq_left (by positivity)]
+        have : rexp ((y * (2 + -y) + -1) / (y * 2))
+              = rexp ((2 + -y) / 2) * rexp (( -1) / (y * 2)) := by
+          rw [← exp_add]
+          field_simp
+        rw [this]
+        field_simp
+        rw [h𝓦]
+        rw [← sqrt_eq_rpow]
+        apply congrArg₂
+        · field_simp
+          rw [sqrt_div (by simp), sqrt_mul (by positivity)]
+          have : √π ≠ 0 := by
+            rw [sqrt_ne_zero (by positivity)]
+            simp
+          field_simp
+          simp only [one_div, Nat.ofNat_nonneg, sqrt_mul, sqrt_one, mul_one]
+          rw [← mul_assoc, mul_comm _ (√2), ← mul_assoc]
+          rw [← sqrt_mul (by positivity), sqrt_mul_self_eq_abs]
+          rw [Nat.abs_ofNat, mul_assoc, sqrt_eq_rpow, ← rpow_ofNat]
+          rw [← rpow_mul (le_of_lt hy), ← rpow_add hy]
+          ring_nf
+          simp
+        field_simp
+        norm_num
+        rw [← rpow_two, ← rpow_mul (le_of_lt hy)]
+        simp
+        field_simp
+        rw [rpow_neg_one]
+        ring_nf
+        field_simp
