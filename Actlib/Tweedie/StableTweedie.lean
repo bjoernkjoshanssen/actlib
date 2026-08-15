@@ -217,10 +217,247 @@ lemma integral_wright_positive_stable (a c t : ℝ)
   ring
 
 
-lemma for_aristotle (p μ phi : ℝ)
+namespace TweedieMean
+
+/-- The two spellings of the Wright function agree. -/
+lemma wrightBessel_eq (L m z : ℝ) :
+    WrightLaplace.wrightBessel L m z = wright_generalized_bessel L m z := rfl
+
+/-- The scale-`c` positive-stable density is a dilation of the unit-scale one. -/
+lemma wright_stable_eq_scaled {a c y : ℝ} (ha0 : 0 < a) (hc : 0 < c) (hy : 0 < y) :
+    1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a))
+      = (c ^ (1 / a))⁻¹ * WrightLaplace.g a (y / c ^ (1 / a)) := by
+  have hk0 : 0 < c ^ (1 / a) := Real.rpow_pos_of_pos hc _
+  have hka : (c ^ (1 / a)) ^ a = c := by
+    rw [← Real.rpow_mul hc.le, one_div_mul_cancel ha0.ne', Real.rpow_one]
+  have hdiv : (y / c ^ (1 / a)) ^ (-a) = c * y ^ (-a) := by
+    rw [Real.div_rpow hy.le hk0.le, Real.rpow_neg hk0.le, hka, div_inv_eq_mul]
+    ring
+  rw [WrightLaplace.g, hdiv, wrightBessel_eq]
+  rw [show -(c * y ^ (-a)) = -c * y ^ (-a) by ring]
+  field_simp
+
+/-- Uniform bound for the scale-`c` positive-stable density. -/
+lemma abs_wright_stable_le {a c y : ℝ} (ha0 : 0 < a) (ha1 : a < 1) (hc : 0 < c) (hy : 0 < y) :
+    |1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a))|
+      ≤ WrightLaplace.M a / c ^ (1 / a) := by
+  have hk0 : 0 < c ^ (1 / a) := Real.rpow_pos_of_pos hc _
+  rw [wright_stable_eq_scaled ha0 hc hy, abs_mul, abs_of_pos (inv_pos.mpr hk0)]
+  calc (c ^ (1 / a))⁻¹ * |WrightLaplace.g a (y / c ^ (1 / a))|
+      ≤ (c ^ (1 / a))⁻¹ * WrightLaplace.M a :=
+        mul_le_mul_of_nonneg_left (WrightLaplace.abs_g_le ha0 ha1 (div_pos hy hk0))
+          (inv_pos.mpr hk0).le
+    _ = WrightLaplace.M a / c ^ (1 / a) := inv_mul_eq_div _ _
+
+/-- Continuity of the scale-`c` positive-stable density on `(0, ∞)`. -/
+lemma continuousOn_wright_stable {a c : ℝ} (ha0 : 0 < a) (ha1 : a < 1) (hc : 0 < c) :
+    ContinuousOn (fun y : ℝ => 1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a)))
+      (Ioi 0) := by
+  have hk0 : 0 < c ^ (1 / a) := Real.rpow_pos_of_pos hc _
+  have hcomp : ContinuousOn
+      (fun y : ℝ => (c ^ (1 / a))⁻¹ * WrightLaplace.g a (y / c ^ (1 / a))) (Ioi 0) := by
+    refine continuousOn_const.mul ?_
+    refine (WrightLaplace.continuousOn_g ha0 ha1).comp (by fun_prop) ?_
+    intro y hy
+    exact div_pos hy hk0
+  exact hcomp.congr fun y hy => wright_stable_eq_scaled ha0 hc hy
+
+/-- `y ↦ y * exp (-b y)` is integrable on `(0, ∞)`. -/
+lemma integrableOn_id_mul_exp_neg {b : ℝ} (hb : 0 < b) :
+    IntegrableOn (fun y : ℝ => y * Real.exp (-b * y)) (Ioi 0) := by
+  have h := integrableOn_rpow_mul_exp_neg_mul_rpow (p := 1) (s := 1) (b := b)
+    (by norm_num) one_pos hb
+  refine h.congr_fun (fun y hy => ?_) measurableSet_Ioi
+  simp only [Real.rpow_one]
+
+/-- The scale-`c` positive-stable density times `exp (-t y)` is integrable on `(0, ∞)`. -/
+lemma integrableOn_wright_stable_mul_exp {a c t : ℝ} (ha0 : 0 < a) (ha1 : a < 1) (hc : 0 < c)
+    (ht : 0 < t) :
+    IntegrableOn (fun y : ℝ =>
+      1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a)) * Real.exp (-t * y)) (Ioi 0) := by
+  have hdom : IntegrableOn
+      (fun y : ℝ => WrightLaplace.M a / c ^ (1 / a) * Real.exp (-t * y)) (Ioi 0) :=
+    (exp_neg_integrableOn_Ioi 0 ht).const_mul _
+  refine Integrable.mono' hdom
+    (((continuousOn_wright_stable ha0 ha1 hc).aestronglyMeasurable measurableSet_Ioi).mul
+      (Continuous.aestronglyMeasurable (by fun_prop))) ?_
+  filter_upwards [ae_restrict_mem measurableSet_Ioi] with y hy
+  rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+  exact mul_le_mul_of_nonneg_right (abs_wright_stable_le ha0 ha1 hc hy) (Real.exp_pos _).le
+
+/-- The first-moment Laplace identity for the positive-stable density, obtained by
+differentiating `∫ f(y) e^{-ty} dy = e^{-c t^a}` in `t`. -/
+lemma integral_wright_positive_stable_mul_id (a c t : ℝ)
+    (ha0 : 0 < a) (ha1 : a < 1) (hc : 0 < c) (ht : 0 < t) :
+    ∫ y in Ioi (0 : ℝ),
+      y * (1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a)) * Real.exp (-t * y))
+      = c * a * t ^ (a - 1) * Real.exp (-c * t ^ a) := by
+  set G : ℝ → ℝ := fun y => 1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a)) with hGdef
+  set m : Measure ℝ := volume.restrict (Ioi (0 : ℝ)) with hm
+  have hmeas : ∀ s : ℝ, AEStronglyMeasurable (fun y : ℝ => G y * Real.exp (-s * y)) m :=
+    fun s => ((continuousOn_wright_stable ha0 ha1 hc).aestronglyMeasurable
+      measurableSet_Ioi).mul (Continuous.aestronglyMeasurable (by fun_prop))
+  have hs_mem : Ioi (t / 2) ∈ 𝓝 t := Ioi_mem_nhds (by linarith)
+  have hbound_int : Integrable
+      (fun y : ℝ => WrightLaplace.M a / c ^ (1 / a) * (y * Real.exp (-(t / 2) * y))) m :=
+    (integrableOn_id_mul_exp_neg (by linarith : (0:ℝ) < t / 2)).const_mul _
+  have hkey := hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun (s : ℝ) (y : ℝ) => G y * Real.exp (-s * y))
+    (F' := fun (s : ℝ) (y : ℝ) => -(y * (G y * Real.exp (-s * y))))
+    (x₀ := t) (μ := m)
+    (bound := fun y : ℝ => WrightLaplace.M a / c ^ (1 / a) * (y * Real.exp (-(t / 2) * y)))
+    (s := Ioi (t / 2)) hs_mem (Filter.Eventually.of_forall hmeas)
+    (integrableOn_wright_stable_mul_exp ha0 ha1 hc ht)
+    (((Continuous.aestronglyMeasurable (by fun_prop)).mul (hmeas t)).neg)
+    (by
+      filter_upwards [ae_restrict_mem measurableSet_Ioi] with y hy s hs
+      have hy' : (0 : ℝ) < y := hy
+      have hs' : t / 2 < s := hs
+      simp only [norm_neg, Real.norm_eq_abs, abs_mul, abs_of_pos hy',
+        abs_of_pos (Real.exp_pos _)]
+      have h1 : Real.exp (-s * y) ≤ Real.exp (-(t / 2) * y) := by
+        apply Real.exp_le_exp.mpr
+        nlinarith
+      have h2 : |G y| ≤ WrightLaplace.M a / c ^ (1 / a) := abs_wright_stable_le ha0 ha1 hc hy'
+      have hG0 : (0 : ℝ) ≤ |G y| := abs_nonneg _
+      calc y * (|G y| * Real.exp (-s * y))
+          ≤ y * (WrightLaplace.M a / c ^ (1 / a) * Real.exp (-(t / 2) * y)) := by
+            refine mul_le_mul_of_nonneg_left ?_ hy'.le
+            exact mul_le_mul h2 h1 (Real.exp_pos _).le (hG0.trans h2)
+        _ = WrightLaplace.M a / c ^ (1 / a) * (y * Real.exp (-(t / 2) * y)) := by ring)
+    hbound_int
+    (by
+      filter_upwards with y s _
+      have h0 : HasDerivAt (fun s : ℝ => -s * y) (-y) s := by
+        simpa using ((hasDerivAt_id s).neg.mul_const y)
+      have h2 : HasDerivAt (fun s : ℝ => G y * Real.exp (-s * y))
+          (G y * (Real.exp (-s * y) * -y)) s := (h0.exp).const_mul (G y)
+      rw [show -(y * (G y * Real.exp (-s * y))) = G y * (Real.exp (-s * y) * -y) by ring]
+      exact h2)
+  have hderiv1 : HasDerivAt (fun s : ℝ => ∫ y, G y * Real.exp (-s * y) ∂m)
+      (∫ y, -(y * (G y * Real.exp (-t * y))) ∂m) t := hkey.2
+  have heq : (fun s : ℝ => ∫ y, G y * Real.exp (-s * y) ∂m)
+      =ᶠ[𝓝 t] fun s : ℝ => Real.exp (-c * s ^ a) := by
+    filter_upwards [Ioi_mem_nhds (by linarith : (0:ℝ) < t)] with s hs
+    exact integral_wright_positive_stable a c s ha0 ha1 hc hs
+  have hderiv2 : HasDerivAt (fun s : ℝ => Real.exp (-c * s ^ a))
+      (-c * (a * t ^ (a - 1)) * Real.exp (-c * t ^ a)) t := by
+    have hrpow : HasDerivAt (fun s : ℝ => s ^ a) (a * t ^ (a - 1)) t :=
+      Real.hasDerivAt_rpow_const (Or.inl ht.ne')
+    have h3 := (hrpow.const_mul (-c)).exp
+    convert h3 using 1
+    ring
+  have huniq : (∫ y, -(y * (G y * Real.exp (-t * y))) ∂m)
+      = -c * (a * t ^ (a - 1)) * Real.exp (-c * t ^ a) :=
+    (hderiv1.congr_of_eventuallyEq heq.symm).unique hderiv2
+  rw [integral_neg] at huniq
+  have hfin : (∫ y, y * (G y * Real.exp (-t * y)) ∂m)
+      = c * a * t ^ (a - 1) * Real.exp (-c * t ^ a) := by linarith
+  have hgoal : ∀ y : ℝ,
+      y * (1 / y * wright_generalized_bessel (-a) 0 (-c * y ^ (-a)) * Real.exp (-t * y))
+        = y * (G y * Real.exp (-t * y)) := by
+    intro y
+    simp only [hGdef]
+  simp_rw [hgoal]
+  rw [hm] at hfin
+  exact hfin
+
+end TweedieMean
+
+open TweedieMean in
+/-- The mean of the corrected Tweedie density for `p > 2` is `μ`:
+`∫ y · tweediePDF₂₃_corrected p μ phi y dy = μ`.  As for the normalization, `p < 3` is not
+needed. -/
+lemma tweediePDF₂₃_corrected_mean (p μ phi : ℝ)
     (hp₂ : 2 < p) (hphi : 0 < phi) (hμ : 0 < μ) :
     ∫ y : ℝ, y * tweediePDF₂₃_corrected p μ phi y = μ := by
-  sorry
+  have hp1_neg : 1 - p < 0 := by linarith
+  have hp2_neg : 2 - p < 0 := by linarith
+  have hp1_ne : p - 1 ≠ 0 := by linarith
+  have hp2_ne : p - 2 ≠ 0 := by linarith
+  have hphi_ne : phi ≠ 0 := ne_of_gt hphi
+  set α := (2 - p) / (1 - p) with hα_def
+  have ha0 : 0 < α := div_pos_of_neg_of_neg hp2_neg hp1_neg
+  have ha1 : α < 1 := by
+    rw [hα_def, div_lt_one_of_neg hp1_neg]
+    linarith
+  have hc_pos : 0 < tweedieNormalizedScale p phi := by
+    unfold tweedieNormalizedScale
+    apply div_pos
+    · exact Real.rpow_pos_of_pos (by linarith : (0:ℝ) < p - 1) _
+    · exact mul_pos (by linarith : (0:ℝ) < p - 2) (Real.rpow_pos_of_pos hphi _)
+  set t := μ ^ (1 - p) / ((p - 1) * phi) with ht_def
+  have ht_pos : 0 < t := by
+    apply div_pos _ (mul_pos (by linarith : (0:ℝ) < p - 1) hphi)
+    exact Real.rpow_pos_of_pos hμ _
+  have hset : {y : ℝ | 0 < y} = Set.Ioi 0 := by ext; simp [Set.mem_Ioi]
+  simp only [tweediePDF₂₃_corrected]
+  rw [← hα_def, hset]
+  have hind : ∀ y : ℝ, y * Set.indicator (Set.Ioi (0:ℝ)) (fun y =>
+      1 / y * wright_generalized_bessel (-α) 0
+        (-tweedieNormalizedScale p phi * y ^ (-α)) *
+      Real.exp (1 / phi * (y * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p)))) y
+      = Set.indicator (Set.Ioi (0:ℝ)) (fun y => y * (1 / y * wright_generalized_bessel (-α) 0
+        (-tweedieNormalizedScale p phi * y ^ (-α)) *
+      Real.exp (1 / phi * (y * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p))))) y := by
+    intro y
+    by_cases h : y ∈ Set.Ioi (0:ℝ)
+    · rw [Set.indicator_of_mem h, Set.indicator_of_mem h]
+    · rw [Set.indicator_of_notMem h, Set.indicator_of_notMem h, mul_zero]
+  simp_rw [hind]
+  rw [MeasureTheory.integral_indicator measurableSet_Ioi]
+  have hexp_factor : ∀ x : ℝ,
+      Real.exp (1 / phi * (x * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p))) =
+      Real.exp (-t * x) * Real.exp (-μ ^ (2 - p) / ((2 - p) * phi)) := by
+    intro x
+    rw [← Real.exp_add, ht_def]
+    congr 1
+    have h1p : 1 - p = -(p - 1) := by ring
+    rw [h1p]
+    field_simp
+    ring
+  have hrearrange : ∀ x : ℝ, x * (1 / x * wright_generalized_bessel (-α) 0
+      (-tweedieNormalizedScale p phi * x ^ (-α)) *
+      Real.exp (1 / phi * (x * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p)))) =
+      Real.exp (-μ ^ (2 - p) / ((2 - p) * phi)) *
+      (x * (1 / x * wright_generalized_bessel (-α) 0
+        (-tweedieNormalizedScale p phi * x ^ (-α)) * Real.exp (-t * x))) := by
+    intro x
+    rw [hexp_factor x]
+    ring
+  rw [MeasureTheory.setIntegral_congr_fun measurableSet_Ioi (fun x _ => hrearrange x)]
+  rw [MeasureTheory.integral_const_mul]
+  rw [integral_wright_positive_stable_mul_id α (tweedieNormalizedScale p phi) t
+    ha0 ha1 hc_pos ht_pos]
+  -- algebraic identification
+  have hα_eq : α = (p - 2) / (p - 1) := by
+    rw [hα_def, show (2:ℝ) - p = -(p - 2) by ring, show (1:ℝ) - p = -(p - 1) by ring,
+      neg_div_neg_eq]
+  have hnors : tweedieNormalizedScale p phi * t ^ α = tweedieTiltConstant p μ phi := by
+    rw [hα_eq, ht_def]
+    exact tweedieNormalizedScale_mul_rpow_tiltRate p μ phi hp₂ hμ hphi
+  have htconst_eq : -μ ^ (2 - p) / ((2 - p) * phi) = tweedieTiltConstant p μ phi := by
+    unfold tweedieTiltConstant
+    rw [show (2:ℝ) - p = -(p - 2) by ring]
+    field_simp
+  have hrpow : t ^ (α - 1) = t ^ α / t := by
+    rw [Real.rpow_sub ht_pos, Real.rpow_one]
+  have hmean : tweedieNormalizedScale p phi * α * t ^ (α - 1) = μ := by
+    rw [hrpow, show tweedieNormalizedScale p phi * α * (t ^ α / t)
+      = α * (tweedieNormalizedScale p phi * t ^ α) / t by ring, hnors, hα_eq, ht_def]
+    unfold tweedieTiltConstant
+    have hμ1 : (0:ℝ) < μ ^ (1 - p) := Real.rpow_pos_of_pos hμ _
+    rw [show (2:ℝ) - p = (1 - p) + 1 by ring, Real.rpow_add hμ, Real.rpow_one]
+    field_simp
+  rw [htconst_eq, ← hnors]
+  calc Real.exp (tweedieNormalizedScale p phi * t ^ α) *
+        (tweedieNormalizedScale p phi * α * t ^ (α - 1) *
+          Real.exp (-tweedieNormalizedScale p phi * t ^ α))
+      = (tweedieNormalizedScale p phi * α * t ^ (α - 1)) *
+          (Real.exp (tweedieNormalizedScale p phi * t ^ α) *
+            Real.exp (-(tweedieNormalizedScale p phi * t ^ α))) := by ring_nf
+    _ = μ := by
+        rw [← Real.exp_add, add_neg_cancel, Real.exp_zero, mul_one, hmean]
 
 /-- Surprisingly, `p < 3` is not needed here. -/
 lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
