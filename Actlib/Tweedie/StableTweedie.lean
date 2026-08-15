@@ -97,7 +97,7 @@ theorem tweedieNormalizedScale_mul_rpow_tiltRate
   ring
 
 /-- Tweedie density with the corrected positive-stable scale coefficient. -/
-noncomputable def tweediePDF₂₃_corrected (p μ phi : ℝ) (y : ℝ) : ℝ :=
+noncomputable def stableTweediePDF (p μ phi : ℝ) (y : ℝ) : ℝ :=
   let α := (2 - p) / (1 - p)
   Set.indicator {y : ℝ | 0 < y} (fun y =>
     1 / y * wright_generalized_bessel (-α) 0
@@ -366,11 +366,11 @@ end TweedieMean
 
 open TweedieMean in
 /-- The mean of the corrected Tweedie density for `p > 2` is `μ`:
-`∫ y · tweediePDF₂₃_corrected p μ phi y dy = μ`.  As for the normalization, `p < 3` is not
+`∫ y · stableTweediePDF p μ phi y dy = μ`.  As for the normalization, `p < 3` is not
 needed. -/
-lemma tweediePDF₂₃_corrected_mean (p μ phi : ℝ)
+lemma stableTweediePDF_mean (p μ phi : ℝ)
     (hp₂ : 2 < p) (hphi : 0 < phi) (hμ : 0 < μ) :
-    ∫ y : ℝ, y * tweediePDF₂₃_corrected p μ phi y = μ := by
+    ∫ y : ℝ, y * stableTweediePDF p μ phi y = μ := by
   have hp1_neg : 1 - p < 0 := by linarith
   have hp2_neg : 2 - p < 0 := by linarith
   have hp1_ne : p - 1 ≠ 0 := by linarith
@@ -384,14 +384,14 @@ lemma tweediePDF₂₃_corrected_mean (p μ phi : ℝ)
   have hc_pos : 0 < tweedieNormalizedScale p phi := by
     unfold tweedieNormalizedScale
     apply div_pos
-    · exact Real.rpow_pos_of_pos (by linarith : (0:ℝ) < p - 1) _
-    · exact mul_pos (by linarith : (0:ℝ) < p - 2) (Real.rpow_pos_of_pos hphi _)
+    · apply Real.rpow_pos_of_pos; linarith
+    · positivity
   set t := μ ^ (1 - p) / ((p - 1) * phi) with ht_def
   have ht_pos : 0 < t := by
     apply div_pos _ (mul_pos (by linarith : (0:ℝ) < p - 1) hphi)
     exact Real.rpow_pos_of_pos hμ _
   have hset : {y : ℝ | 0 < y} = Set.Ioi 0 := by ext; simp [Set.mem_Ioi]
-  simp only [tweediePDF₂₃_corrected]
+  simp only [stableTweediePDF]
   rw [← hα_def, hset]
   have hind : ∀ y : ℝ, y * Set.indicator (Set.Ioi (0:ℝ)) (fun y =>
       1 / y * wright_generalized_bessel (-α) 0
@@ -400,10 +400,7 @@ lemma tweediePDF₂₃_corrected_mean (p μ phi : ℝ)
       = Set.indicator (Set.Ioi (0:ℝ)) (fun y => y * (1 / y * wright_generalized_bessel (-α) 0
         (-tweedieNormalizedScale p phi * y ^ (-α)) *
       Real.exp (1 / phi * (y * μ ^ (1 - p) / (1 - p) - μ ^ (2 - p) / (2 - p))))) y := by
-    intro y
-    by_cases h : y ∈ Set.Ioi (0:ℝ)
-    · rw [Set.indicator_of_mem h, Set.indicator_of_mem h]
-    · rw [Set.indicator_of_notMem h, Set.indicator_of_notMem h, mul_zero]
+    simp [Set.indicator]
   simp_rw [hind]
   rw [MeasureTheory.integral_indicator measurableSet_Ioi]
   have hexp_factor : ∀ x : ℝ,
@@ -450,19 +447,18 @@ lemma tweediePDF₂₃_corrected_mean (p μ phi : ℝ)
     rw [show (2:ℝ) - p = (1 - p) + 1 by ring, Real.rpow_add hμ, Real.rpow_one]
     field_simp
   rw [htconst_eq, ← hnors]
-  calc Real.exp (tweedieNormalizedScale p phi * t ^ α) *
-        (tweedieNormalizedScale p phi * α * t ^ (α - 1) *
-          Real.exp (-tweedieNormalizedScale p phi * t ^ α))
+  calc _
       = (tweedieNormalizedScale p phi * α * t ^ (α - 1)) *
           (Real.exp (tweedieNormalizedScale p phi * t ^ α) *
-            Real.exp (-(tweedieNormalizedScale p phi * t ^ α))) := by ring_nf
+            Real.exp (-(tweedieNormalizedScale p phi * t ^ α))) := by
+            ring_nf
     _ = μ := by
         rw [← Real.exp_add, add_neg_cancel, Real.exp_zero, mul_one, hmean]
 
 /-- Surprisingly, `p < 3` is not needed here. -/
 lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
     (hp₂ : 2 < p) (hphi : 0 < phi) (hμ : 0 < μ) :
-    ∫ y : ℝ, tweediePDF₂₃_corrected p μ phi y = 1 := by
+    ∫ y : ℝ, stableTweediePDF p μ phi y = 1 := by
   have hp1_neg : 1 - p < 0 := by linarith
   have hp2_neg : 2 - p < 0 := by linarith
   -- Key: α = (2-p)/(1-p) = (p-2)/(p-1), and 0 < α < 1 when 2 < p < 3
@@ -483,7 +479,7 @@ lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
     apply div_pos _ (mul_pos (by linarith : p - 1 > 0) hphi)
     exact Real.rpow_pos_of_pos hμ _
   -- Rewrite the integral using the indicator
-  unfold tweediePDF₂₃_corrected
+  unfold stableTweediePDF
   simp only
   have hset : {y : ℝ | 0 < y} = Set.Ioi 0 := by ext; simp [Set.mem_Ioi]
   rw [hset, MeasureTheory.integral_indicator measurableSet_Ioi]
@@ -492,9 +488,6 @@ lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
       -t * x + (-μ ^ (2 - p) / ((2 - p) * phi)) := by
     intro x
     rw [ht_def]
-    have hp1_ne : p - 1 ≠ 0 := by linarith
-    have hp2_ne : 2 - p ≠ 0 := by linarith
-    have hphi_ne : phi ≠ 0 := by linarith
     have h1p : 1 - p = -(p - 1) := by ring
     rw [h1p]
     field_simp
@@ -545,24 +538,23 @@ lemma tweediePDF₂₃_normalized (p μ phi : ℝ)
     rw [h2p]
     field_simp [hp2_ne, h2p_ne]
   rw [htconst_eq]
-  have : tweedieTiltConstant p μ phi + -tweedieTiltConstant p μ phi = 0 := by ring
-  rw [this, Real.exp_zero]
+  simp
 
 
-/-- Whereas `tweediePDF₂₃_corrected` for `p=3` is the inverse Gaussian,
+/-- Whereas `stableTweediePDF` for `p=3` is the inverse Gaussian,
 for `p=2` (and `p=1`) [and `p=0`] it collapses to zero rather than the gamma distribution
 (and the Poisson distribution) [and the normal distribution]. -/
 lemma tweedie_degenerate₂ (μ phi y : ℝ) :
-    tweediePDF₂₃_corrected 2 μ phi y = 0 := by
-  unfold tweediePDF₂₃_corrected wright_generalized_bessel
+    stableTweediePDF 2 μ phi y = 0 := by
+  unfold stableTweediePDF wright_generalized_bessel
   simp
 lemma tweedie_degenerate₁ (μ phi y : ℝ) :
-    tweediePDF₂₃_corrected 1 μ phi y = 0 := by
-  unfold tweediePDF₂₃_corrected wright_generalized_bessel
+    stableTweediePDF 1 μ phi y = 0 := by
+  unfold stableTweediePDF wright_generalized_bessel
   simp
 lemma tweedie_degenerate₀ (μ phi y : ℝ) :
-    tweediePDF₂₃_corrected 0 μ phi y = 0 := by
-  unfold tweediePDF₂₃_corrected wright_generalized_bessel
+    stableTweediePDF 0 μ phi y = 0 := by
+  unfold stableTweediePDF wright_generalized_bessel
     tweedieNormalizedScale
   simp only [one_div, zero_sub, neg_div_neg_eq, div_one, rpow_ofNat, even_two, Even.neg_pow,
     one_pow, ne_eq, one_ne_zero, not_false_eq_true, div_neg_self, neg_mul, inv_neg, mul_inv_rev,
@@ -688,8 +680,8 @@ lemma h𝓦 : 𝓦 (-(1 / 2)) 0 = fun z => -z / (2 * √π) * rexp (-z ^ 2 / 4) 
 August 13, 2026.
 -/
 lemma tweedie₃_eq_inverseGaussian (y : ℝ) (hy : 0 < y) :
-    tweediePDF₂₃_corrected 3 1 1 y = (inverseGaussianPDF 1 1 y).toReal := by
-        unfold tweediePDF₂₃_corrected inverseGaussianPDF tweedieNormalizedScale
+    stableTweediePDF 3 1 1 y = (inverseGaussianPDF 1 1 y).toReal := by
+        unfold stableTweediePDF inverseGaussianPDF tweedieNormalizedScale
         simp [Set.indicator]
         ring_nf
         rw [if_pos hy]
