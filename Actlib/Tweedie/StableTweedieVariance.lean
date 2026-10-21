@@ -379,27 +379,25 @@ theorem tweedieproperties (p μ phi : ℝ) (hμ : 0 < μ)
   (hp₁ : 1 ≤ p) (hφ : 0 < phi) :
   ∫ x, x ∂ Tw p μ phi (by linarith) hp₁ = μ
   ∧
-  ∫ x, x^2 ∂ Tw p μ phi (by linarith) hp₁ = phi * μ^p + μ^2
-   := by
+  ∫ x, x^2 ∂ Tw p μ phi (by linarith) hp₁ = phi * μ^p + μ^2 := by
     constructor
-    unfold Tw
-    split_ifs with g₀ g₁
-    · have := @stableTweediePDF_mean p μ phi g₀ hφ hμ
-      nth_rw 2 [← this]
-      -- true, but tricky
-      generalize stableTweediePDF p μ phi = P
-      sorry
-    · subst p
-      unfold ProbabilityTheory.gammaPDF
-        ProbabilityTheory.gammaPDFReal
-      simp
-      sorry
-    · refine tweedieMeasure_expectation hμ hμ (by linarith) ?_
-      simp_all
-      contrapose! g₁
-      linarith
-    · simp -- p = 1
-      sorry
+    · unfold Tw
+      split_ifs with g₀ g₁
+      · have := @stableTweediePDF_mean p μ phi g₀ hφ hμ
+        nth_rw 2 [← this]
+        -- true, but tricky
+        generalize stableTweediePDF p μ phi = P
+        sorry
+      · subst p
+        unfold ProbabilityTheory.gammaPDF
+          ProbabilityTheory.gammaPDFReal
+        simp
+        sorry
+      · refine tweedieMeasure_expectation hμ hμ (by linarith) ?_
+        contrapose! g₁
+        linarith
+      · simp -- p = 1
+        sorry
     sorry
 
 
