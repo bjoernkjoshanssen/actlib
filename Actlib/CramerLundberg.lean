@@ -213,7 +213,7 @@ lemma exp_nonneg {r s : ℝ} (hr : 0 < r) (hs : 0 < s) (x y : ℝ) :
 lemma measExp₁ (r : ℝ) :
     Measurable fun (a : ℝ × ℝ) ↦ exponentialPDFReal r a.1 := by
   refine Measurable.ite ?_ ?_ ?_
-  · simp only [measurableSet_setOf]
+  · simp only [measurableSet_setOfPred]
     refine Measurable.le' measurable_const measurable_fst
   · refine Measurable.mul ?_ ?_
     · refine Measurable.mul measurable_const <| Measurable.pow_const measurable_fst _
@@ -224,7 +224,7 @@ lemma measExp₁ (r : ℝ) :
 lemma measExp₂ (r : ℝ) :
     Measurable fun (a : ℝ × ℝ) ↦ exponentialPDFReal r a.2 := by
   refine Measurable.ite ?_ ?_ ?_
-  · simp only [measurableSet_setOf]
+  · simp only [measurableSet_setOfPred]
     refine Measurable.le' measurable_const measurable_snd
   · refine Measurable.mul ?_ ?_
     · refine Measurable.mul measurable_const <| Measurable.pow_const measurable_snd _
@@ -236,7 +236,7 @@ lemma ae' {r s : ℝ} :
     (fun a ↦ exponentialPDF r a.1 * exponentialPDF s a.2) a)
     (volume.prod volume) := by
   refine (aemeasurable_indicator_iff ?_).mpr ?_
-  · simp only [measurableSet_setOf]
+  · simp only [measurableSet_setOfPred]
     exact measurable_le
   · refine Measurable.aemeasurable ?_
     refine measurable_coe_nnreal_ennreal_iff.mpr ?_
@@ -383,7 +383,7 @@ lemma first_loss_is_ruinous' (r s : ℝ) (hs : 0 < s) (hr : 0 < r) :
     rw [← h₃]
     rw [h₂]
     · unfold Set.indicator
-      simp only [Set.mem_setOf_eq, ENNReal.some_eq_coe]
+      simp only [Set.mem_ofPred_eq]
       -- looks good, integrate over all x,y with x ≤ y
       unfold exponentialPDF
       have H₀ (x y : ℝ) :
@@ -408,7 +408,7 @@ lemma first_loss_is_ruinous' (r s : ℝ) (hs : 0 < s) (hr : 0 < r) :
               exponentialPDFReal r x * exponentialPDFReal s x_1 else 0}
               = Set.univ := by
               ext y
-              simp only [Set.mem_setOf_eq, Set.mem_univ, iff_true]
+              simp only [Set.mem_ofPred_eq, Set.mem_univ, iff_true]
               apply exp_nonneg hr hs
             rw [this]
             exact Filter.univ_mem
@@ -417,44 +417,57 @@ lemma first_loss_is_ruinous' (r s : ℝ) (hs : 0 < s) (hr : 0 < r) :
       · have (x : ℝ) (hx : 0 ≤ x) :
             (⟨x,hx⟩ : {x : ℝ // 0 ≤ x}) = NNReal.mk x hx := rfl
         rw [this]
-        rw [← ENNReal.ofReal_eq_coe_nnreal]
-        apply congrArg -- yes!
-        have hswap: (∫ (x : ℝ) (y : ℝ), if x ≤ y then
-                exponentialPDFReal r x * exponentialPDFReal s y else 0)
-                =  (∫ (y : ℝ) (x : ℝ), if x ≤ y then
-                exponentialPDFReal r x * exponentialPDFReal s y else 0) := by
-          apply integral_integral_swap
-          -- certainly true...
-          unfold Function.uncurry
-          apply integ hr hs
-        rw [← integral_indicator]
-        · unfold Set.indicator
-          simp only [Set.mem_Ici]
-          rw [hswap]
-          congr
-          ext x
-          split_ifs with g₀
-          · rw [← integral_indicator]
-            · unfold Set.Iic Set.indicator
-              congr
-              ext z
-              rw [mul_comm]
+        rw [ENNReal.ofReal_eq_coe_nnreal]
+        · apply congrArg
+          have := @ENNReal.ofReal_eq_coe_nnreal
+          apply NNReal.mk.congr_simp
+          have hswap: (∫ (x : ℝ) (y : ℝ), if x ≤ y then
+                  exponentialPDFReal r x * exponentialPDFReal s y else 0)
+                  =  (∫ (y : ℝ) (x : ℝ), if x ≤ y then
+                  exponentialPDFReal r x * exponentialPDFReal s y else 0) := by
+            apply integral_integral_swap
+            -- certainly true...
+            unfold Function.uncurry
+            apply integ hr hs
+          rw [← integral_indicator]
+          · unfold Set.indicator
+            simp only [Set.mem_Ici]
+            rw [hswap]
+            congr
+            ext x
+            split_ifs with g₀
+            · rw [← integral_indicator]
+              · unfold Set.Iic Set.indicator
+                congr
+                ext z
+                rw [mul_comm]
+                simp
+              · simp
+            · simp at g₀
+              have : exponentialPDFReal s x = 0 := by
+                unfold exponentialPDFReal gammaPDFReal
+                split_ifs with g₁
+                · linarith
+                · rfl
+              rw [this]
               simp
-            · simp
-          · simp at g₀
-            have : exponentialPDFReal s x = 0 := by
-              unfold exponentialPDFReal gammaPDFReal
-              split_ifs with g₁
-              · linarith
-              · rfl
-            rw [this]
-            simp
-        · simp
+          · simp
+        · show 0 ≤ _
+          apply integral_nonneg
+          intro x
+          apply integral_nonneg
+          intro y
+          simp only [Pi.zero_apply]
+          split_ifs
+          · apply mul_nonneg
+            · exact exponentialPDFReal_nonneg hr _
+            · exact exponentialPDFReal_nonneg hs _
+          · simp
       · apply integrable_exponential_joint _ _ hr hs
       · simp only [Filter.EventuallyLE, Filter.Eventually, Pi.zero_apply]
         refine Filter.univ_mem' ?_
         intro a
-        simp only [Set.mem_setOf_eq]
+        simp only [Set.mem_ofPred_eq]
         have : 0 = ∫ (y : ℝ), (0:ℝ) := by simp
         nth_rw 1 [this]
         apply integral_mono
@@ -484,7 +497,7 @@ lemma sigmaFiniteMeasure_pi_prod (μ ν : Measure ℝ)
   · simp
   · refine Measurable.prodMk ?_ ?_
     all_goals exact measurable_pi_apply _
-  · simp only [measurableSet_setOf];exact measurable_le
+  · simp only [measurableSet_setOfPred];exact measurable_le
 
 lemma expMeasure_pi_prod (r s : ℝ) :
     Measure.pi ![expMeasure r, expMeasure s] {v | v 0 ≤ v 1} =
