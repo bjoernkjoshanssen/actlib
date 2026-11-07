@@ -43,7 +43,8 @@ atomless measure (`n ≥ 1`) is again atomless at `0`.
 set_option maxHeartbeats 8000000 in
 -- times out
 open Classical in
-lemma pi_sum_eq_zero {ι : Type*} [Fintype ι] [Nonempty ι] [NoAtoms μ] :
+lemma pi_sum_eq_zero {ι : Type*} [Fintype ι] [Nonempty ι] [NullSingletonClass μ]
+  :
     Measure.pi (fun _ : ι => μ) {g : ι → ℝ | ∑ i, g i = 0} = 0 := by
   -- Let $j$ be an arbitrary element of $\iota$.
   obtain ⟨j, hj⟩ : ∃ j : ι, True := by
@@ -59,7 +60,7 @@ lemma pi_sum_eq_zero {ι : Type*} [Fintype ι] [Nonempty ι] [NoAtoms μ] :
       (Measure.pi (fun _ : ι => μ)) (Set.preimage (MeasurableEquiv.piEquivPiSubtypeProd
         (fun _ : ι => ℝ) p) t) := by
       congr with g
-      simp only [MeasurableEquiv.piEquivPiSubtypeProd_apply, Set.mem_setOf_eq, t]
+      simp only [MeasurableEquiv.piEquivPiSubtypeProd_apply, Set.mem_ofPred_eq, t]
       rw [show ( Finset.univ : Finset ι ) = Finset.image ( fun i : { i // p i } => i.val )
         Finset.univ ∪ { j } from ?_, Finset.sum_union] <;> norm_num [Finset.sum_image, p]
       · rw [show ( Finset.univ : Finset { i // ¬p i } ) = { ⟨j, by aesop⟩ } from
@@ -80,7 +81,7 @@ lemma pi_sum_eq_zero {ι : Type*} [Fintype ι] [Nonempty ι] [NoAtoms μ] :
     have h_singleton : {b : {i // ¬p i} → ℝ | (∑ i, a i) + (∑ i, b i) = 0}
       = {fun _ => -(∑ i, a i)} := by
       ext b
-      simp only [ne_eq, Set.mem_setOf_eq, Set.mem_singleton_iff, p]
+      simp only [ne_eq, Set.mem_ofPred_eq, Set.mem_singleton_iff, p]
       rw [show ( Finset.univ : Finset { i // ¬p i } ) = { ⟨j, by aesop⟩ } from
         Finset.eq_singleton_iff_unique_mem.mpr ⟨Finset.mem_univ _,
         fun x hx => Subtype.ext <| by aesop⟩]
@@ -95,7 +96,7 @@ lemma pi_sum_eq_zero {ι : Type*} [Fintype ι] [Nonempty ι] [NoAtoms μ] :
 The infinite product measure assigns zero mass to the event that the first `m+1` jumps sum to
 zero, whenever `μ` is atomless.
 -/
-lemma infinitePi_sum_range_succ_eq_zero [NoAtoms μ] (m : ℕ) :
+lemma infinitePi_sum_range_succ_eq_zero [NullSingletonClass μ] (m : ℕ) :
     Measure.infinitePi (fun _ : ℕ => μ)
       {f : ℕ → ℝ | ∑ i ∈ Finset.range (m + 1), f i = 0} = 0 := by
   -- Let's denote the finite set $\{0, 1, ..., m\}$ by $I$.
@@ -119,7 +120,7 @@ lemma infinitePi_sum_range_succ_eq_zero [NoAtoms μ] (m : ℕ) :
 The probability that the compound Poisson variable is `0` equals `ℙ(N = 0)`, provided the jump
 distribution `μ` is atomless.
 -/
-theorem compoundPoisson_singleton_zero [NoAtoms μ] :
+theorem compoundPoisson_singleton_zero [NullSingletonClass μ] :
     compoundPoisson μ lam {(0 : ℝ)} = poissonMeasure lam {0} := by
   have h_integral : ∫⁻ n, (Measure.infinitePi (fun _ : ℕ => μ))
     {f : ℕ → ℝ | ∑ i ∈ Finset.range n, f i = 0} ∂(poissonMeasure lam)
@@ -138,7 +139,7 @@ theorem compoundPoisson_singleton_zero [NoAtoms μ] :
   · exact MeasurableSingletonClass.measurableSet_singleton _
 /-- The probability that the compound Poisson variable is `0` is positive (assuming `μ` atomless),
 and in fact equals `e^{-lam}`. -/
-theorem compoundPoisson_singleton_zero_pos [NoAtoms μ] :
+theorem compoundPoisson_singleton_zero_pos [NullSingletonClass μ] :
     0 < compoundPoisson μ lam {(0 : ℝ)} := by
   rw [compoundPoisson_singleton_zero μ lam]
   exact poissonMeasure_singleton_zero_pos lam
@@ -169,7 +170,7 @@ noncomputable def tweedieConstruction (μ : ℝ) (hμ : 0 ≤ μ) {φ p : ℝ}
     )
     ⟨μ^(2-p) / (φ * (2-p)), by positivity⟩ -- Poisson rate
 
-instance (a r : ℝ) : MeasureTheory.NoAtoms
+instance (a r : ℝ) : MeasureTheory.NullSingletonClass
   (ProbabilityTheory.gammaMeasure a r) := by
   refine { measure_singleton := ?_ }
   intro x
@@ -193,10 +194,21 @@ lemma tweedie_zero_sanity_check (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
       (show 0 ≤ φ by linarith)
        hp₂ {0} = tweedieProbZero μ φ p := by
   unfold tweedieConstruction
-  rw [@compoundPoisson_singleton_zero _
-    (tweedie_gamma_IsProbabilityMeasure hμ hφ hp₁ hp₂)]
+  have h₀ :  0 ≤ μ ^ (2 - p) / (φ * (2 - p)) := by
+      apply div_nonneg
+      · refine Real.rpow_nonneg ?_ (2 - p)
+        linarith
+      · apply mul_nonneg
+        · linarith
+        · linarith
+  let lam : ℝ≥0 := ⟨μ ^ (2 - p) / (φ * (2 - p)), h₀⟩
+  have := @compoundPoisson_singleton_zero _
+    (tweedie_gamma_IsProbabilityMeasure hμ hφ hp₁ hp₂)
+    lam (instNullSingletonClassRealGammaMeasure_actlib _ _)
+  rw [this]
   unfold tweedieProbZero
-  rw [poissonMeasure_singleton_zero]
+  have := @poissonMeasure_singleton_zero lam
+  rw [this]
   norm_cast
   have : NNReal.toReal ⟨μ ^ (2 - p) / (φ * (2 - p)),
     by positivity⟩
@@ -206,11 +218,10 @@ lemma tweedie_zero_sanity_check (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
     ENNReal.ofReal x = ENNReal.ofNNReal (⟨x,hx⟩ : {y // (0:ℝ) ≤ y}) := by
       refine (ENNReal.toReal_eq_toReal_iff' ?_ ?_).mp ?_
       · simp
-      · simp
+      · exact ENNReal.coe_ne_top
       exact ENNReal.toReal_ofReal hx
   rw [this]
-  · simp
-    congr
+  · congr
     field_simp
   · exact Real.exp_nonneg (-(μ ^ (2 - p) / (φ * (2 - p))))
 
@@ -224,7 +235,7 @@ lemma tweedie_zero_sanity_check₂ (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
     let hμ₀ := le_of_lt hμ
     let hφ₀ := le_of_lt hφ
     tweedieConstruction μ hμ₀ hφ₀ hp₂ {0} =
-    tweedieMeasure       μ hφ₀ hp₁ (by linarith) {0} := by
+    tweedieMeasure       μ hφ₀ (show 1 ≤ p by linarith) (by linarith) {0} := by
   intro hμ₀ hφ₀
   rw [tweedie_zero_sanity_check μ hμ hφ hp₁ hp₂]
   simp [tweedieMeasure]
@@ -275,7 +286,7 @@ lemma compound_split (α γ : ℝ) (hα : 0 < α) (hγ : 0 < γ) (lam : ℝ≥0)
         + volume.withDensity (fun z => ∑' n : ℕ,
             ENNReal.ofReal (Real.exp (-(lam : ℝ)) * (lam : ℝ) ^ (n + 1) / ((n + 1).factorial))
               * gammaPDF (((n + 1 : ℕ) : ℝ) * α) γ z) := by
-  haveI : IsProbabilityMeasure (gammaMeasure α γ) := isProbabilityMeasure_gammaMeasure hα hγ
+  have : IsProbabilityMeasure (gammaMeasure α γ) := isProbabilityMeasure_gammaMeasure hα hγ
   have hgPDFmeas : ∀ a : ℝ, Measurable (fun z => gammaPDF a γ z) := fun a =>
     (measurable_gammaPDFReal a γ).ennreal_ofReal
   set d : ℝ → ℝ≥0∞ := fun z => ∑' n : ℕ,
@@ -310,8 +321,9 @@ lemma compound_split (α γ : ℝ) (hα : 0 < α) (hγ : 0 < γ) (lam : ℝ≥0)
             = volume.withDensity (gammaPDF (((n + 1 : ℕ) : ℝ) * α) γ) from rfl]
       rw [MeasureTheory.lintegral_withDensity_eq_lintegral_mul _ (hgPDFmeas _) hf]
       simp only [Pi.mul_apply]
-      rw [← MeasureTheory.lintegral_const_mul _ ((hgPDFmeas _).mul hf)]
-      congr 1; ext z; ring
+      rw [← MeasureTheory.lintegral_const_mul]
+      · congr 1; ext z; ring
+      · exact (hgPDFmeas _).mul hf
     rw [tsum_congr step]
     rw [← MeasureTheory.lintegral_tsum (fun n => (hmeas_term n).aemeasurable)]
     congr 1; ext z
@@ -337,28 +349,28 @@ lemma tweedie_density_series_ae (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ} (hφ : 0 
     (fun z => ∑' n : ℕ, ENNReal.ofReal
         (Real.exp (-twZ μ φ p) * (twZ μ φ p) ^ (n + 1) / ((n + 1).factorial))
       * gammaPDF (((n + 1 : ℕ) : ℝ) * ((2 - p) / (p - 1))) (μ ^ (1 - p) / (φ * (p - 1))) z)
-      =ᵐ[volume] (fun z => tweediePDF' μ hp₁ (le_of_lt hp₂) (le_of_lt hφ) z) := by
+      =ᵐ[volume] (fun z => tweediePDF' μ (by linarith) (le_of_lt hp₂) (le_of_lt hφ) z) := by
   have hzne : ∀ᵐ z ∂(volume : Measure ℝ), z ≠ (0 : ℝ) := by
     rw [MeasureTheory.ae_iff]; simp
   filter_upwards [twG_ae_summable μ hp₁ hp₂ hμ hφ, hzne] with z hzsum hzne0
-  have hpdf' : tweediePDF' μ hp₁ (le_of_lt hp₂) (le_of_lt hφ) z
+  have hpdf' : tweediePDF' μ (by linarith) (le_of_lt hp₂) (le_of_lt hφ) z
       = ENNReal.ofReal (tweediePDF p μ φ z) := by
     unfold tweediePDF'
     exact (ENNReal.ofReal_eq_coe_nnreal
-      (tweediePDF_nonneg (le_of_lt hφ) hp₁ (le_of_lt hp₂))).symm
+      (tweediePDF_nonneg (le_of_lt hφ) (by linarith) (le_of_lt hp₂))).symm
   rw [hpdf']
   rcases lt_or_gt_of_ne hzne0 with hzlt | hzgt
   · -- z < 0 : both sides vanish
     have h1 : tweediePDF p μ φ z = 0 := by
       simp only [tweediePDF]
-      rw [Set.indicator_of_notMem (by simp only [Set.mem_setOf_eq]; linarith)]
+      rw [Set.indicator_of_notMem (by simp only [Set.mem_ofPred_eq]; linarith)]
     rw [h1, ENNReal.ofReal_zero, ENNReal.tsum_eq_zero]
     intro n
     rw [gammaPDF_of_neg hzlt, mul_zero]
   · -- z > 0 : use the pointwise Tweedie series
     have hpw : tweediePDF p μ φ z = ∑' j : ℕ, twG μ φ p j z := by
       simp only [tweediePDF]
-      rw [Set.indicator_of_mem (by simp only [Set.mem_setOf_eq]; exact hzgt)]
+      rw [Set.indicator_of_mem (by simp only [Set.mem_ofPred_eq]; exact hzgt)]
       exact tw_pointwise μ φ p z
     rw [hpw,
       ENNReal.ofReal_tsum_of_nonneg
@@ -378,7 +390,7 @@ theorem tweedie_eq (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
     let hμ₀ := le_of_lt hμ
     let hφ₀ := le_of_lt hφ
     tweedieConstruction μ hμ₀ hφ₀ hp₂ =
-    tweedieMeasure       μ hφ₀ hp₁ (by linarith) := by
+    tweedieMeasure       μ hφ₀ (by linarith) (by linarith) := by
   intro hμ₀ hφ₀
   have hα : (0 : ℝ) < (2 - p) / (p - 1) := div_pos (by linarith) (by linarith)
   have hγ : (0 : ℝ) < μ ^ (1 - p) / (φ * (p - 1)) :=
@@ -398,4 +410,5 @@ theorem tweedie_eq (μ : ℝ) (hμ : 0 < μ) {φ p : ℝ}
         = Real.exp (-μ ^ (2 - p) / (φ * (2 - p)))
     rw [neg_div]
   · -- absolutely continuous part
-    exact MeasureTheory.withDensity_congr_ae (tweedie_density_series_ae μ hμ hφ hp₁ hp₂)
+    apply MeasureTheory.withDensity_congr_ae
+    exact (tweedie_density_series_ae μ hμ hφ hp₁ hp₂)
