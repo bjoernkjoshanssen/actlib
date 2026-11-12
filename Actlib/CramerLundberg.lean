@@ -7,6 +7,7 @@ import Mathlib.Probability.Distributions.Exponential
 import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.MeasureTheory.Integral.Gamma
 import Mathlib.Probability.Process.Stopping
+import Actlib.CramerLundberg.IntegralEquation
 
 /-!
 
@@ -530,18 +531,35 @@ def integralEquation (α β c : ℝ) (φ : ℝ → ℝ) :=
   ∀ u ≥ 0, φ u = ∫ t, exponentialPDFReal α t * ∫ x in Set.Iic (u + c * t),
     φ (u + c * t - x) * exponentialPDFReal β x
 
--- lemma integralEquation_variant (α β c : ℝ) (φ : ℝ → ℝ)
---   (hα : 0 < α) (hβ : 0 < β) (hc : 0 < c)
---   (h : Tendsto φ atTop (nhds 1)) -- added by Aristotle
---   (h_net_profit : α < β * c) -- added by Aristotle
---   (hφ : integralEquation α β c φ) :
---   ∀ u ≥ 0, φ u = 1 - α / (β * c) + α / c *
---     ∫ x : ℝ in Set.Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x) := by
---   /- "The proof requires Fubini's theorem,
---   differentiation under the integral sign, and
---   Volterra equation theory,
---   which are extremely challenging to formalize." -/
---   sorry
+/-- The integral equation and the limit at infinity force continuity on the
+nonnegative half-line, without any measurability assumption. -/
+lemma integralEquation_continuousOn (α β c : ℝ) (φ : ℝ → ℝ)
+    (hc : 0 < c) (h : Tendsto φ atTop (nhds 1))
+    (hφ : integralEquation α β c φ) : ContinuousOn φ (Set.Ici 0) := by
+  exact CramerLundberg.continuousOn_of_integralEquation hc h hφ
+
+/-- The renewal equation, with continuity made explicit as an intermediate
+calculus result. See `integralEquation_variant` for the version deriving continuity
+from the original equation. -/
+lemma integralEquation_variant_of_continuousOn (α β c : ℝ) (φ : ℝ → ℝ)
+    (hα : 0 < α) (hβ : 0 < β) (hc : 0 < c)
+    (h : Tendsto φ atTop (nhds 1))
+    (hcont : ContinuousOn φ (Set.Ici 0))
+    (hφ : integralEquation α β c φ) :
+    ∀ u ≥ 0, φ u = 1 - α / (β * c) + α / c *
+      ∫ x : ℝ in Set.Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x) := by
+  exact CramerLundberg.renewal_equation_of_continuousOn hα hβ hc hcont h hφ
+
+/-- The renewal form of the Cramér–Lundberg integral equation. The normalization
+at infinity determines the constant term and forces the regularity needed for
+the proof. No continuity, measurability, or net-profit hypothesis is required. -/
+lemma integralEquation_variant (α β c : ℝ) (φ : ℝ → ℝ)
+    (hα : 0 < α) (hβ : 0 < β) (hc : 0 < c)
+    (h : Tendsto φ atTop (nhds 1))
+    (hφ : integralEquation α β c φ) :
+    ∀ u ≥ 0, φ u = 1 - α / (β * c) + α / c *
+      ∫ x : ℝ in Set.Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x) := by
+  exact CramerLundberg.renewal_equation hα hβ hc h hφ
 
 lemma exists_solution (α β c : ℝ) :
     integralEquation α β c 0 := by simp [integralEquation]
