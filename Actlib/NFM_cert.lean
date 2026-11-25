@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2026 Bjørn Kjos-Hanssen. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bjørn Kjos-Hanssen
+-/
 import LeanCert.Validity.Bounds.Bridge
 import LeanCert.Validity.DyadicBounds
 import Mathlib.Analysis.ODE.ExistUnique
@@ -249,7 +254,7 @@ lemma general_force (a : ℝ → ℝ)
         cases hx.1 <;> linarith)
       have hs : Set.Icc 0 t ⊆ Set.Ici 0 := by
         unfold Set.Icc Set.Ici
-        simp only [Set.setOf_subset_setOf, and_imp]
+        simp only [Set.ofPred_subset_ofPred, and_imp]
         intros
         trivial
       clear hx hm₀ hm₁ ht hcont hδ hcontδ hn n ha₀ hdiff hnz
@@ -459,7 +464,7 @@ lemma chan_tse_exe_1_36 (h : δ a = fun t => 1 / (10 * (1 + t) ^ 3))
           · interval_decide
           · have : ∀ x ∈ Set.Icc (7/144) (71/1440),
               (Real.exp x - Real.exp (6 / 125)) * 100 > 64e-3 := by
-                sorry
+                interval_auto
                 -- interval_bound
             apply this
             simp

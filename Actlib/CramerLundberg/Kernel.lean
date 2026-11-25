@@ -12,7 +12,7 @@ open MeasureTheory ProbabilityTheory Real Set
 namespace CramerLundberg
 
 lemma integral_exponentialPDFReal_Iic_eq (β u : ℝ) (φ : ℝ → ℝ) :
-    (∫ x in Iic u, φ (u - x) * exponentialPDFReal β x) =
+         (∫ x in Iic   u, φ (u - x) * exponentialPDFReal β x) =
       β * ∫ x in Icc 0 u, φ (u - x) * exp (-β * x) := by
   have hfun : (fun x => φ (u - x) * exponentialPDFReal β x) =
       (Ici 0).indicator (fun x => β * (φ (u - x) * exp (-β * x))) := by
@@ -23,7 +23,7 @@ lemma integral_exponentialPDFReal_Iic_eq (β u : ℝ) (φ : ℝ → ℝ) :
   rw [hfun, setIntegral_indicator measurableSet_Ici, Iic_inter_Ici, integral_const_mul]
 
 lemma integral_exponential_tail_eq (β u : ℝ) (φ : ℝ → ℝ) (hβ : 0 < β) :
-    (∫ x in Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x)) =
+     (∫ x in Icc 0 u, φ (u - x) * (1 - cdf (expMeasure β) x)) =
       ∫ x in Icc 0 u, φ (u - x) * exp (-β * x) := by
   apply setIntegral_congr_fun measurableSet_Icc
   intro x hx

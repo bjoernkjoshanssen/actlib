@@ -78,7 +78,7 @@ lemma integrableOn_exp_mul_of_bounded {a M : ℝ} {f : ℝ → ℝ}
 
 /-- Translation of a Lebesgue integral over a positive half-line. -/
 lemma integral_Ioi_zero_comp_add (g : ℝ → ℝ) (u : ℝ) :
-    (∫ x in Ioi 0, g (u + x)) = ∫ v in Ioi u, g v := by
+    ∫ x in Ioi 0, g (u + x) = ∫ v in Ioi u, g v := by
   rw [← integral_indicator measurableSet_Ioi, ← integral_indicator measurableSet_Ioi]
   rw [← integral_add_left_eq_self ((Ioi u).indicator g) u]
   congr 1
